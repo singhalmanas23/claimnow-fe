@@ -27,7 +27,7 @@ export default function SignInPage() {
   const router = useRouter();
   const loginMutation = useLogin();
   
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -46,10 +46,10 @@ export default function SignInPage() {
     e.preventDefault();
     setError("");
     
-    if (email && password && agreedToTerms) {
+    if (username && password && agreedToTerms) {
       try {
         await loginMutation.mutateAsync({
-          username: email,
+          username: username,
           password: password,
         });
         
@@ -124,13 +124,13 @@ export default function SignInPage() {
               </div>
             )}
             
-            {/* Email Input */}
+            {/* Username Input */}
             <div className="relative">
               <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Email"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Username"
                 className="w-full h-14 px-5 font-poppins font-normal text-sm leading-[21px] placeholder:text-[rgba(29,36,51,0.65)] text-[#1D2433] border border-[#D8DDE7] rounded-lg focus:outline-none focus:border-[#2F5FED] focus:ring-1 focus:ring-[#2F5FED] transition-all"
               />
             </div>
@@ -186,9 +186,9 @@ export default function SignInPage() {
             {/* Sign In Button */}
             <button
               type="submit"
-              disabled={!email || !password || !agreedToTerms || loginMutation.isPending}
+              disabled={!username || !password || !agreedToTerms || loginMutation.isPending}
               className={`w-full h-14 border border-[#D8DDE7] rounded-lg font-poppins font-medium text-sm leading-[21px] transition-colors ${
-                email && password && agreedToTerms && !loginMutation.isPending
+                username && password && agreedToTerms && !loginMutation.isPending
                   ? "bg-gradient-to-br from-[#2F5FED] to-[#5D86FF] text-white border-transparent hover:from-[#2854D6] hover:to-[#4B7AE8]"
                   : "bg-[#F1F3F9] text-[rgba(29,36,51,0.65)] cursor-not-allowed"
               }`}
