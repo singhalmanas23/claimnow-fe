@@ -1,33 +1,90 @@
 "use client";
 
-import React from "react";
-import { PROCESSED_CLAIM_DATA } from "@/constants/processed";
+import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import type { AdjudicatedClaim } from "@/lib/api-types";
 import ProcessedHeader from "@/components/processed/ProcessedHeader";
 import UnclaimedTable from "@/components/processed/UnclaimedTable";
 import ClaimedTable from "@/components/processed/ClaimedTable";
 import {
   DownloadIcon,
-  SuccessCheckIcon,
 } from "@/components/icons/ProcessedIcons";
 import { Check } from "lucide-react";
 
 export default function ProcessedPage() {
-  const {
-    fileName,
-    totalRequested,
-    claimedAmount,
-    claimPercentage,
-    unclaimedAmount,
-    unclaimedBreakdown,
-    claimedBreakdown,
-  } = PROCESSED_CLAIM_DATA;
+  const router = useRouter();
+  const [claimData, setClaimData] = useState<AdjudicatedClaim | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Load adjudicated claim data from sessionStorage
+    const storedData = sessionStorage.getItem('adjudicatedClaimData');
+    if (storedData) {
+      try {
+        const parsed: AdjudicatedClaim = JSON.parse(storedData);
+        setClaimData(parsed);
+      } catch (err) {
+        console.error('Failed to parse adjudicated data:', err);
+        router.push('/upload');
+      }
+    } else {
+      // No data available, redirect to upload page
+      router.push('/upload');
+    }
+    setLoading(false);
+  }, [router]);
+
+  if (loading || !claimData) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2F5FED] mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading claim results...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const fileName = `${claimData.patient_name}_${claimData.bill_no || 'claim'}`;
+  const totalRequested = claimData.total_claimed_amount;
+  const claimedAmount = claimData.total_amount_reimbursed;
+  const unclaimedAmount = totalRequested - claimedAmount;
+  const claimPercentage = Math.round((claimedAmount / totalRequested) * 100);
+
+  // Prepare unclaimed breakdown
+  const unclaimedBreakdown = claimData.adjudicated_line_items
+    .filter(item => item.disallowed_amount > 0)
+    .map((item, index) => ({
+      id: `unclaimed-${index}`,
+      serialNo: (index + 1).toString(),
+      amount: item.disallowed_amount,
+      reason: item.reason || 'Not covered',
+    }));
+
+  // Prepare claimed breakdown
+  const claimedBreakdown = claimData.adjudicated_line_items
+    .filter(item => item.allowed_amount > 0)
+    .map((item, index) => ({
+      id: `claimed-${index}`,
+      serialNo: (index + 1).toString(),
+      costTitle: item.description,
+      quantity: item.quantity,
+      unitPrice: item.unit_price,
+      totalAmount: item.allowed_amount,
+      claimStatus: Math.round((item.allowed_amount / item.total_amount) * 100),
+      reason: item.status,
+    }));
 
   const handleDownloadPdf = () => {
     console.log("Downloading PDF...");
+    // TODO: Implement PDF download
   };
 
   const handleGoHome = () => {
-    window.location.href = "/";
+    // Clear session storage
+    sessionStorage.removeItem('extractedClaimData');
+    sessionStorage.removeItem('adjudicatedClaimData');
+    router.push("/upload");
   };
 
   return (
@@ -41,9 +98,36 @@ export default function ProcessedPage() {
           </div>
         </div>
         <div className="text-center mb-12">
-          <h1 className="text-2xl font-medium text-[#1D2433] mb-8">
+          <h1 className="text-2xl font-medium text-[#1D2433] mb-4">
             {fileName} Successfully Processed
           </h1>
+
+          {/* Sanity Check Result */}
+          {claimData.sanity_check_result && (
+            <div className={`mx-auto max-w-2xl mb-6 p-4 rounded-lg ${
+              claimData.sanity_check_result.is_reasonable 
+                ? 'bg-green-50 border border-green-200' 
+                : 'bg-yellow-50 border border-yellow-200'
+            }`}>
+              <p className={`text-sm font-medium ${
+                claimData.sanity_check_result.is_reasonable 
+                  ? 'text-green-700' 
+                  : 'text-yellow-700'
+              }`}>
+                {claimData.sanity_check_result.is_reasonable ? '✓' : '⚠'} {claimData.sanity_check_result.reasoning}
+              </p>
+              {claimData.sanity_check_result.flags.length > 0 && (
+                <div className="mt-2">
+                  <p className="text-xs font-medium text-gray-600 mb-1">Flags:</p>
+                  <ul className="list-disc list-inside text-xs text-gray-600">
+                    {claimData.sanity_check_result.flags.map((flag, idx) => (
+                      <li key={idx}>{flag}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Total Claim Amount */}
           <div className="flex flex-col items-center gap-2 mb-8">

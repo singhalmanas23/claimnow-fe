@@ -2,6 +2,8 @@
 
 import Image from "next/image";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useLogin } from "@/hooks/use-auth";
 
 const slides = [
   {
@@ -22,10 +24,14 @@ const slides = [
 ];
 
 export default function SignInPage() {
+  const router = useRouter();
+  const loginMutation = useLogin();
+  
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [error, setError] = useState<string>("");
 
   // Auto-rotate slides every 4 seconds
   useEffect(() => {
@@ -36,11 +42,22 @@ export default function SignInPage() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
+    
     if (email && password && agreedToTerms) {
-      console.log("Sign in attempted with:", { email, password, agreedToTerms });
-      // Add your sign-in logic here
+      try {
+        await loginMutation.mutateAsync({
+          username: email,
+          password: password,
+        });
+        
+        // Redirect to upload page on success
+        router.push("/upload");
+      } catch (err: any) {
+        setError(err?.response?.data?.detail || "Invalid credentials. Please try again.");
+      }
     }
   };
 
@@ -100,6 +117,13 @@ export default function SignInPage() {
           </h1>
 
           <form className="space-y-6" onSubmit={handleSubmit}>
+            {/* Error Message */}
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-600 font-medium">{error}</p>
+              </div>
+            )}
+            
             {/* Email Input */}
             <div className="relative">
               <input
@@ -162,14 +186,14 @@ export default function SignInPage() {
             {/* Sign In Button */}
             <button
               type="submit"
-              disabled={!email || !password || !agreedToTerms}
+              disabled={!email || !password || !agreedToTerms || loginMutation.isPending}
               className={`w-full h-14 border border-[#D8DDE7] rounded-lg font-poppins font-medium text-sm leading-[21px] transition-colors ${
-                email && password && agreedToTerms
+                email && password && agreedToTerms && !loginMutation.isPending
                   ? "bg-gradient-to-br from-[#2F5FED] to-[#5D86FF] text-white border-transparent hover:from-[#2854D6] hover:to-[#4B7AE8]"
                   : "bg-[#F1F3F9] text-[rgba(29,36,51,0.65)] cursor-not-allowed"
               }`}
             >
-              Sign In
+              {loginMutation.isPending ? "Signing in..." : "Sign In"}
             </button>
           </form>
         </div>

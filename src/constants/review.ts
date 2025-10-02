@@ -6,7 +6,9 @@ export const STATIC_POLICY_DATA: PolicyInfo = {
   billNo: 'ICR33540',
   billDate: '13/01/2025',
   admissionDate: '13/01/2025',
-  dischargeDate: '14/01/2025'
+  dischargeDate: '14/01/2025',
+  policyNumber: 'POL123456',
+  insuranceProvider: 'Star Health Insurance'
 };
 
 export const STATIC_ITEMIZED_CHARGES: ItemizedCharge[] = [

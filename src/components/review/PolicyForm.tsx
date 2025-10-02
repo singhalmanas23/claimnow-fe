@@ -68,6 +68,25 @@ export default function PolicyForm({ policyInfo, onFieldChange }: PolicyFormProp
             />
           </div>
         </div>
+        
+        <div className="flex gap-4">
+          <div className="flex-1">
+            <FormInput
+              label="Policy Number"
+              value={policyInfo.policyNumber}
+              onChange={(value) => onFieldChange('policyNumber', value)}
+              placeholder="Enter policy number"
+            />
+          </div>
+          <div className="flex-1">
+            <FormInput
+              label="Insurance Provider"
+              value={policyInfo.insuranceProvider}
+              onChange={(value) => onFieldChange('insuranceProvider', value)}
+              placeholder="Enter insurance provider name"
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

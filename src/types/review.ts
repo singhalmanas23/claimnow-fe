@@ -13,6 +13,8 @@ export interface PolicyInfo {
   billDate: string;
   admissionDate: string;
   dischargeDate: string;
+  policyNumber: string;
+  insuranceProvider: string;
 }
 
 export interface ReviewState {

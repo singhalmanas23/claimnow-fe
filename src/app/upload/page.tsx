@@ -1,23 +1,45 @@
 "use client";
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import UploadComponent from '../../components/UploadComponent';
+import { useExtractClaim } from '@/hooks/use-claims';
+import type { ExtractedDataWithConfidence } from '@/lib/api-types';
 
 export default function UploadPage() {
+  const router = useRouter();
+  const extractClaimMutation = useExtractClaim();
+  
   const [uploadState, setUploadState] = useState<'empty' | 'processing' | 'success'>('empty');
+  const [extractedData, setExtractedData] = useState<ExtractedDataWithConfidence | null>(null);
+  const [error, setError] = useState<string>('');
 
-  const handleFileUpload = (file: File) => {
-    setUploadState('processing'); // File is being processed, not yet successfully uploaded
-    console.log('File uploaded:', file.name);
+  const handleFileUpload = async (file: File) => {
+    setUploadState('processing');
+    setError('');
+    
+    try {
+      const result = await extractClaimMutation.mutateAsync(file);
+      setExtractedData(result);
+      setUploadState('success');
+      console.log('Extraction successful:', result);
+    } catch (err: any) {
+      setUploadState('empty');
+      setError(err?.response?.data?.detail || 'Failed to extract claim data. Please try again.');
+      console.error('Extraction failed:', err);
+    }
   };
 
   const handleUploadSuccess = () => {
-    setUploadState('success'); // Only set to success when upload is complete
+    // This is called when file is successfully uploaded (UI state)
   };
 
   const handleStartClaim = () => {
-    console.log('Starting claim process...');
-    // Add navigation logic here
+    if (extractedData) {
+      // Store extracted data in sessionStorage to pass to review page
+      sessionStorage.setItem('extractedClaimData', JSON.stringify(extractedData));
+      router.push('/review');
+    }
   };
 
   const handleReset = () => {
@@ -134,6 +156,24 @@ export default function UploadPage() {
           Start your claim process now
         </h2>
 
+        {/* Error Message */}
+        {error && (
+          <div className="w-[739px] mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-sm text-red-600 font-medium">{error}</p>
+          </div>
+        )}
+
+        {/* Success Message with Extraction Status */}
+        {extractedData && uploadState === 'success' && (
+          <div className="w-[739px] mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <p className="text-sm text-green-700 font-medium">
+              ✓ Document extracted successfully! Patient: {extractedData.patient_name.value} | 
+              Hospital: {extractedData.hospital_name.value} | 
+              Amount: ₹{extractedData.net_payable_amount.value.toLocaleString()}
+            </p>
+          </div>
+        )}
+
         {/* Upload Section */}
         <div className="w-[739px] h-[312px] bg-white/90 backdrop-blur-sm rounded-[32px] relative mb-[241px]">
           {/* Functional Upload Component */}
@@ -149,10 +189,11 @@ export default function UploadPage() {
 
           {/* Dynamic Send/Start Claim Button */}
           <div className="absolute right-3 bottom-3">
-            {uploadState === 'success' ? (
+            {uploadState === 'success' && extractedData ? (
               <button 
                 className="flex items-center gap-[7px] bg-gradient-to-br from-[#2F5FED] to-[#60B6F7] text-white px-5 py-3 rounded-full hover:from-[#2854D6] hover:to-[#4B7AE8] transition-all duration-200"
                 onClick={handleStartClaim}
+                disabled={extractClaimMutation.isPending}
               >
                 <div className="w-6 h-6 flex items-center justify-center">
                   <svg width="19.5" height="19.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -163,7 +204,7 @@ export default function UploadPage() {
                   </svg>
                 </div>
                 <span className="font-satoshi font-medium text-[16px] leading-[21.6px]">
-                  Start claim
+                  {extractClaimMutation.isPending ? 'Processing...' : 'Start claim'}
                 </span>
               </button>
             ) : (
