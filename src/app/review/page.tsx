@@ -10,13 +10,16 @@ import PolicyForm from '@/components/review/PolicyForm';
 import ItemizedCharges from '@/components/review/ItemizedCharges';
 import BottomNavigation from '@/components/review/BottomNavigation';
 import { useAdjudicateClaim } from '@/hooks/use-claims';
+import { useCurrentUser } from '@/hooks/use-auth';
 import type { ExtractedDataWithConfidence, ExtractedData, AdjudicatedClaim } from '@/lib/api-types';
 
 export default function ReviewPage() {
   const router = useRouter();
   const adjudicateClaimMutation = useAdjudicateClaim();
+  const { data: currentUser, isLoading: userLoading } = useCurrentUser();
   const [extractedData, setExtractedData] = useState<ExtractedDataWithConfidence | null>(null);
   const [error, setError] = useState<string>('');
+  const [uploadedFileName, setUploadedFileName] = useState<string>('Bill11.pdf');
   
   const {
     policyInfo,
@@ -34,6 +37,12 @@ export default function ReviewPage() {
   // Load extracted data from sessionStorage on component mount
   useEffect(() => {
     const storedData = sessionStorage.getItem('extractedClaimData');
+    const storedFileName = sessionStorage.getItem('uploadedFileName');
+    
+    if (storedFileName) {
+      setUploadedFileName(storedFileName);
+    }
+    
     if (storedData) {
       try {
         const parsed: ExtractedDataWithConfidence = JSON.parse(storedData);
@@ -99,7 +108,12 @@ export default function ReviewPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <ReviewHeader steps={PROGRESS_STEPS} />
+      <ReviewHeader 
+        steps={PROGRESS_STEPS}
+        userName={currentUser?.full_name || currentUser?.username || 'User'}
+        userEmail={currentUser?.email || 'View profile'}
+        isLoading={userLoading}
+      />
 
       {/* Error Message */}
       {error && (
@@ -110,6 +124,7 @@ export default function ReviewPage() {
 
       <div className="flex">
         <PDFPreview 
+          fileName={uploadedFileName}
           policyInfo={policyInfo}
           itemizedCharges={itemizedCharges}
         />

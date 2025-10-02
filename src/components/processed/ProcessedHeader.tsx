@@ -1,7 +1,17 @@
 import React from 'react';
 import { CheckIcon, HelpIcon, NotificationIcon, ChevronDownIcon } from '@/components/icons/Icons';
 
-export default function ProcessedHeader() {
+interface ProcessedHeaderProps {
+  userName?: string;
+  userEmail?: string;
+  isLoading?: boolean;
+}
+
+export default function ProcessedHeader({ 
+  userName = "User", 
+  userEmail = "View profile",
+  isLoading = false 
+}: ProcessedHeaderProps) {
   return (
     <header className="w-full h-[72px] bg-white border-b border-[#D8DDE7] flex items-center justify-between px-16 sticky top-0 z-50">
       {/* Logo */}
@@ -55,10 +65,20 @@ export default function ProcessedHeader() {
         {/* Profile */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-gray-300 to-gray-400 rounded-full"></div>
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-200 to-gray-400 flex items-center justify-center overflow-hidden">
+              {!isLoading && (
+                <span className="text-white font-bold text-sm">
+                  {userName.charAt(0).toUpperCase()}
+                </span>
+              )}
+            </div>
             <div className="flex flex-col">
-              <span className="text-base font-bold text-[rgba(29,36,51,0.8)]">Ravi Varma</span>
-              <span className="text-xs font-medium text-[rgba(29,36,51,0.65)]">More details</span>
+              <span className="text-base font-bold text-[rgba(29,36,51,0.8)]">
+                {isLoading ? 'Loading...' : userName}
+              </span>
+              <span className="text-xs font-medium text-[rgba(29,36,51,0.65)]">
+                {userEmail}
+              </span>
             </div>
           </div>
           <ChevronDownIcon />

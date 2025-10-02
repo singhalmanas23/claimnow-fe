@@ -16,21 +16,40 @@ export default function UploadPage() {
   const [extractedData, setExtractedData] = useState<ExtractedDataWithConfidence | null>(null);
   const [error, setError] = useState<string>('');
   const [uploadedFileName, setUploadedFileName] = useState<string>('');
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
 
   const handleFileUpload = async (file: File) => {
     setUploadState('processing');
     setError('');
     setUploadedFileName(file.name);
+    setUploadedFile(file);
+    
+    console.log('Upload: Starting file upload for', file.name, 'Size:', file.size, 'Type:', file.type);
+    
+    // Convert file to base64 and store in sessionStorage for preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64Data = reader.result as string;
+      console.log('Upload: PDF converted to base64, storing in sessionStorage. Data length:', base64Data.length);
+      sessionStorage.setItem('uploadedPdfData', base64Data);
+      console.log('Upload: PDF data stored successfully');
+    };
+    reader.onerror = (error) => {
+      console.error('Upload: Error reading file:', error);
+      setError('Failed to read PDF file');
+    };
+    reader.readAsDataURL(file);
     
     try {
+      console.log('Upload: Calling extraction API...');
       const result = await extractClaimMutation.mutateAsync(file);
       setExtractedData(result);
       setUploadState('success');
-      console.log('Extraction successful:', result);
+      console.log('Upload: Extraction successful:', result);
     } catch (err: any) {
       setUploadState('empty');
       setError(err?.response?.data?.detail || 'Failed to extract claim data. Please try again.');
-      console.error('Extraction failed:', err);
+      console.error('Upload: Extraction failed:', err);
     }
   };
 
@@ -42,6 +61,7 @@ export default function UploadPage() {
     if (extractedData) {
       // Store extracted data in sessionStorage to pass to review page
       sessionStorage.setItem('extractedClaimData', JSON.stringify(extractedData));
+      sessionStorage.setItem('uploadedFileName', uploadedFileName);
       router.push('/review');
     }
   };

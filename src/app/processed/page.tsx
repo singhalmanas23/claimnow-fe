@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { AdjudicatedClaim } from "@/lib/api-types";
+import { useCurrentUser } from "@/hooks/use-auth";
 import ProcessedHeader from "@/components/processed/ProcessedHeader";
 import UnclaimedTable from "@/components/processed/UnclaimedTable";
 import ClaimedTable from "@/components/processed/ClaimedTable";
@@ -13,6 +14,7 @@ import { Check } from "lucide-react";
 
 export default function ProcessedPage() {
   const router = useRouter();
+  const { data: currentUser, isLoading: userLoading } = useCurrentUser();
   const [claimData, setClaimData] = useState<AdjudicatedClaim | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -89,7 +91,11 @@ export default function ProcessedPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <ProcessedHeader />
+      <ProcessedHeader 
+        userName={currentUser?.full_name || currentUser?.username || 'User'}
+        userEmail={currentUser?.email || 'View profile'}
+        isLoading={userLoading}
+      />
 
       <div className="px-16 py-8">
         <div className="flex justify-center mb-8">
