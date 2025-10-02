@@ -4,19 +4,23 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import UploadComponent from '../../components/UploadComponent';
 import { useExtractClaim } from '@/hooks/use-claims';
+import { useCurrentUser } from '@/hooks/use-auth';
 import type { ExtractedDataWithConfidence } from '@/lib/api-types';
 
 export default function UploadPage() {
   const router = useRouter();
   const extractClaimMutation = useExtractClaim();
+  const { data: currentUser, isLoading: userLoading } = useCurrentUser();
   
   const [uploadState, setUploadState] = useState<'empty' | 'processing' | 'success'>('empty');
   const [extractedData, setExtractedData] = useState<ExtractedDataWithConfidence | null>(null);
   const [error, setError] = useState<string>('');
+  const [uploadedFileName, setUploadedFileName] = useState<string>('');
 
   const handleFileUpload = async (file: File) => {
     setUploadState('processing');
     setError('');
+    setUploadedFileName(file.name);
     
     try {
       const result = await extractClaimMutation.mutateAsync(file);
@@ -44,6 +48,9 @@ export default function UploadPage() {
 
   const handleReset = () => {
     setUploadState('empty');
+    setExtractedData(null);
+    setError('');
+    setUploadedFileName('');
   };
 
   return (
@@ -112,14 +119,20 @@ export default function UploadPage() {
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-3">
                 <div className="w-[40px] h-[40px] rounded-[30px] bg-gray-300 overflow-hidden">
-                  <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-400"></div>
+                  <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-400 flex items-center justify-center">
+                    {!userLoading && currentUser && (
+                      <span className="text-white font-bold text-sm">
+                        {(currentUser.full_name || currentUser.username || 'U').charAt(0).toUpperCase()}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="flex flex-col">
                   <span className="font-satoshi font-bold text-[16px] text-[rgba(29,36,51,0.8)]">
-                    Ravi Varma
+                    {userLoading ? 'Loading...' : (currentUser?.full_name || currentUser?.username || 'User')}
                   </span>
                   <span className="font-satoshi font-medium text-[12px] text-[rgba(29,36,51,0.65)]">
-                    More details
+                    {currentUser?.email || 'View profile'}
                   </span>
                 </div>
               </div>
@@ -144,7 +157,7 @@ export default function UploadPage() {
         {/* Welcome Section */}
         <div className="flex items-center gap-1 mb-[29px]">
           <span className="font-poppins font-medium text-[20px] leading-[30px] text-[rgba(29,36,51,0.8)]">
-            Welcome Vamsi!
+            Welcome {currentUser?.full_name || currentUser?.username || 'User'}!
           </span>
           <span className="font-satoshi font-medium text-[20px] leading-[27px] text-black">
             👋
@@ -164,7 +177,7 @@ export default function UploadPage() {
         )}
 
         {/* Success Message with Extraction Status */}
-        {extractedData && uploadState === 'success' && (
+        {/* {extractedData && uploadState === 'success' && (
           <div className="w-[739px] mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
             <p className="text-sm text-green-700 font-medium">
               ✓ Document extracted successfully! Patient: {extractedData.patient_name.value} | 
@@ -172,7 +185,7 @@ export default function UploadPage() {
               Amount: ₹{extractedData.net_payable_amount.value.toLocaleString()}
             </p>
           </div>
-        )}
+        )} */}
 
         {/* Upload Section */}
         <div className="w-[739px] h-[312px] bg-white/90 backdrop-blur-sm rounded-[32px] relative mb-[241px]">
@@ -183,6 +196,8 @@ export default function UploadPage() {
               onStartClaim={handleStartClaim}
               onUploadSuccess={handleUploadSuccess}
               onReset={handleReset}
+              uploadState={uploadState}
+              uploadedFileName={uploadedFileName}
               className="w-full h-full"
             />
           </div>

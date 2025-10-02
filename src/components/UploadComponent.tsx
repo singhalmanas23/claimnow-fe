@@ -10,6 +10,8 @@ export interface UploadComponentProps {
   onUploadSuccess?: () => void;
   onReset?: () => void;
   className?: string;
+  uploadState?: UploadState; // Allow parent to control state
+  uploadedFileName?: string; // Allow parent to pass file name
 }
 
 export interface FileInfo {
@@ -22,29 +24,29 @@ export default function UploadComponent({
   onStartClaim, 
   onUploadSuccess,
   onReset,
-  className = "" 
+  className = "",
+  uploadState: externalUploadState,
+  uploadedFileName
 }: UploadComponentProps) {
-  const [uploadState, setUploadState] = useState<UploadState>('empty');
+  const [internalUploadState, setInternalUploadState] = useState<UploadState>('empty');
   const [uploadedFile, setUploadedFile] = useState<FileInfo | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Use external state if provided, otherwise use internal state
+  const uploadState = externalUploadState !== undefined ? externalUploadState : internalUploadState;
+
   const handleFileSelect = (file: File) => {
     setUploadedFile({ name: file.name, size: file.size });
-    setUploadState('processing');
     
-    // Call the onFileUpload callback if provided (file starts uploading)
+    // Only set internal state if not controlled by parent
+    if (externalUploadState === undefined) {
+      setInternalUploadState('processing');
+    }
+    
+    // Call the onFileUpload callback if provided
     if (onFileUpload) {
       onFileUpload(file);
     }
-
-    // Simulate processing time
-    setTimeout(() => {
-      setUploadState('success');
-      // Call onUploadSuccess when upload is complete
-      if (onUploadSuccess) {
-        onUploadSuccess();
-      }
-    }, 2000);
   };
 
   const handleFileInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -122,19 +124,19 @@ export default function UploadComponent({
 
   const renderProcessingState = () => (
     <div className="w-full h-full bg-white rounded-[20px] border border-[#D8DDE7] flex flex-col items-center justify-center">
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col items-center gap-4">
         {/* Loading Spinner */}
-        <div className="w-8 h-8 relative">
-          <div className="w-8 h-8 border-2 border-[#E5E7EB] border-t-[#2F5FED] rounded-full animate-spin"></div>
+        <div className="w-12 h-12 relative">
+          <div className="w-12 h-12 border-4 border-[#E5E7EB] border-t-[#2F5FED] rounded-full animate-spin"></div>
         </div>
         
-        {/* File Name */}
+        {/* File Name & Processing Text */}
         <div className="text-center">
-          <p className="font-satoshi font-medium text-[16px] leading-[21.6px] text-[rgba(29,36,51,0.8)]">
-            {uploadedFile?.name || 'Processing...'}
+          <p className="font-satoshi font-medium text-[16px] leading-[21.6px] text-[rgba(29,36,51,0.8)] mb-1">
+            {uploadedFileName || uploadedFile?.name || 'Processing...'}
           </p>
           <p className="font-satoshi font-normal text-[14px] leading-[18.9px] text-[rgba(29,36,51,0.65)]">
-            Processing your file...
+            Extracting claim data with AI...
           </p>
         </div>
       </div>
@@ -145,9 +147,11 @@ export default function UploadComponent({
     <div className="w-full h-full bg-white rounded-[20px] shadow-[4px_4px_16px_0px_rgba(0,0,0,0.08)] relative">
       {/* Close Button - positioned exactly as in Figma */}
       <button 
-        className="absolute right-4 top-4 w-6 h-6 flex items-center justify-center"
+        className="absolute right-4 top-4 w-6 h-6 flex items-center justify-center hover:opacity-70 transition-opacity"
         onClick={() => {
-          setUploadState('empty');
+          if (externalUploadState === undefined) {
+            setInternalUploadState('empty');
+          }
           setUploadedFile(null);
           if (onReset) {
             onReset();
@@ -184,14 +188,14 @@ export default function UploadComponent({
       {/* File Name - centered and responsive width */}
       <div className="absolute left-1/2 transform -translate-x-1/2 top-[112px] max-w-[400px] px-4">
         <span className="font-poppins font-medium text-[20px] leading-[30px] text-[#1D2433] text-center block truncate">
-          {uploadedFile?.name || 'Bill11.pdf'}
+          {uploadedFileName || uploadedFile?.name || 'Bill11.pdf'}
         </span>
       </div>
 
       {/* Success Message with Checkmark - centered */}
       <div className="absolute left-1/2 transform -translate-x-1/2 top-[144px] flex items-center gap-1">
         <span className="font-poppins font-medium text-[12px] leading-[18px] text-[#08875D]">
-          Uploaded successfully
+          Extraction completed successfully
         </span>
         <div className="w-5 h-5 flex items-center justify-center">
           <svg width="16.67" height="16.67" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
