@@ -13,6 +13,7 @@ export function useReviewState(): ReviewState & {
   handleProcessNow: () => Promise<void>;
   handleReset: () => void;
   setIsSubmitting: (submitting: boolean) => void;
+  setItemizedCharges: (charges: ItemizedCharge[]) => void;
 } {
   const [policyInfo, setPolicyInfo] = useState<PolicyInfo>(STATIC_POLICY_DATA);
   const [itemizedCharges, setItemizedCharges] = useState<ItemizedCharge[]>(STATIC_ITEMIZED_CHARGES);
@@ -111,6 +112,7 @@ export function useReviewState(): ReviewState & {
     getGrandTotal,
     handleProcessNow,
     handleReset,
-    setIsSubmitting
+    setIsSubmitting,
+    setItemizedCharges
   };
 }
