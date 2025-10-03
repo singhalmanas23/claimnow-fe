@@ -51,15 +51,29 @@ class ClaimsService {
     extractedData: ExtractedData,
     insuranceDetails: InsuranceDetails
   ): Promise<AdjudicatedClaim> {
-    const response = await apiClient.post<AdjudicatedClaim>(
-      `${API_PREFIX}/adjudicate`,
-      extractedData,
-      {
-        params: insuranceDetails,
-      }
-    );
+    try {
+      console.log('ClaimsService: Sending adjudication request...');
+      console.log('ClaimsService: Extracted Data:', extractedData);
+      console.log('ClaimsService: Insurance Details:', insuranceDetails);
 
-    return response.data;
+      const response = await apiClient.post<AdjudicatedClaim>(
+        `${API_PREFIX}/adjudicate`,
+        extractedData,
+        {
+          params: insuranceDetails,
+          timeout: 180000, // 3 minutes
+        }
+      );
+
+      console.log('ClaimsService: Adjudication response received:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('ClaimsService: Adjudication error:', error);
+      console.error('ClaimsService: Error response:', error.response);
+      console.error('ClaimsService: Error message:', error.message);
+      console.error('ClaimsService: Error config:', error.config);
+      throw error;
+    }
   }
 
   /**

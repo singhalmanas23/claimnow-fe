@@ -142,6 +142,8 @@ export interface ClaimRecord {
   claim_id: string;
   submitted_by_user_id: number;
   policy_id: string;
+  status?: string;
+  original_pdf_filename?: string;
   extracted_data: ExtractedData;
   adjudicated_data: AdjudicatedClaim;
   created_at: string;

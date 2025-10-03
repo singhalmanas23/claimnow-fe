@@ -30,7 +30,7 @@ export function useClaims(params?: PaginationParams) {
   return useQuery({
     queryKey: claimsKeys.list(params),
     queryFn: () => claimsService.getClaims(params),
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 2 * 60 * 1000,
   });
 }
 

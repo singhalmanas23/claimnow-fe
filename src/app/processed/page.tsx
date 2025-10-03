@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import type { AdjudicatedClaim } from "@/lib/api-types";
+import { useRouter, useSearchParams } from "next/navigation";
+import type { AdjudicatedClaim, ClaimRecord } from "@/lib/api-types";
 import { useCurrentUser } from "@/hooks/use-auth";
 import ProcessedHeader from "@/components/processed/ProcessedHeader";
 import UnclaimedTable from "@/components/processed/UnclaimedTable";
@@ -10,31 +10,64 @@ import ClaimedTable from "@/components/processed/ClaimedTable";
 import {
   DownloadIcon,
 } from "@/components/icons/ProcessedIcons";
-import { Check } from "lucide-react";
+import { Check, ArrowLeft } from "lucide-react";
 
 export default function ProcessedPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: currentUser, isLoading: userLoading } = useCurrentUser();
   const [claimData, setClaimData] = useState<AdjudicatedClaim | null>(null);
+  const [claimRecord, setClaimRecord] = useState<ClaimRecord | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isHistoricalView, setIsHistoricalView] = useState(false);
+  const [claimNumber, setClaimNumber] = useState<string>("");
 
   useEffect(() => {
-    // Load adjudicated claim data from sessionStorage
-    const storedData = sessionStorage.getItem('adjudicatedClaimData');
-    if (storedData) {
-      try {
-        const parsed: AdjudicatedClaim = JSON.parse(storedData);
-        setClaimData(parsed);
-      } catch (err) {
-        console.error('Failed to parse adjudicated data:', err);
-        router.push('/upload');
+    // Check if this is a historical view (from claims history page)
+    const viewMode = searchParams?.get('view');
+    const claimId = searchParams?.get('claimId');
+    
+    if (viewMode === 'history' && claimId) {
+      // Load from claims history
+      setIsHistoricalView(true);
+      setClaimNumber(claimId.slice(0, 8)); // Use first 8 chars as claim number
+      
+      const storedClaim = sessionStorage.getItem('selectedClaimData');
+      if (storedClaim) {
+        try {
+          const parsed: ClaimRecord = JSON.parse(storedClaim);
+          setClaimRecord(parsed);
+          
+          // Extract adjudicated data from claim record
+          if (parsed.adjudicated_data) {
+            setClaimData(parsed.adjudicated_data);
+          }
+        } catch (err) {
+          console.error('Failed to parse stored claim:', err);
+          router.push('/claims');
+        }
+      } else {
+        router.push('/claims');
       }
     } else {
-      // No data available, redirect to upload page
-      router.push('/upload');
+      // Load newly processed claim data
+      setIsHistoricalView(false);
+      const storedData = sessionStorage.getItem('adjudicatedClaimData');
+      if (storedData) {
+        try {
+          const parsed: AdjudicatedClaim = JSON.parse(storedData);
+          setClaimData(parsed);
+        } catch (err) {
+          console.error('Failed to parse adjudicated data:', err);
+          router.push('/upload');
+        }
+      } else {
+        // No data available, redirect to upload page
+        router.push('/upload');
+      }
     }
     setLoading(false);
-  }, [router]);
+  }, [searchParams, router]);
 
   if (loading || !claimData) {
     return (
@@ -86,7 +119,12 @@ export default function ProcessedPage() {
     // Clear session storage
     sessionStorage.removeItem('extractedClaimData');
     sessionStorage.removeItem('adjudicatedClaimData');
+    sessionStorage.removeItem('selectedClaimData');
     router.push("/upload");
+  };
+
+  const handleBackToClaims = () => {
+    router.push("/claims");
   };
 
   return (
@@ -98,15 +136,73 @@ export default function ProcessedPage() {
       />
 
       <div className="px-16 py-8">
-        <div className="flex justify-center mb-8">
-          <div className="flex items-center justify-center w-16 h-16 rounded-full bg-green-800">
-            <Check className="w-8 h-8 text-white" />
+        {/* Progress Stepper - Only show for newly processed claims */}
+        {!isHistoricalView && (
+          <div className="flex justify-center mb-8">
+            <div className="flex items-center gap-2">
+              {/* Step 1: Upload Document */}
+              <div className="flex flex-col items-center gap-1">
+                <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[#EDFDF8] border border-[#08875D]">
+                  <Check className="w-4 h-4 text-[#08875D]" />
+                </div>
+                <span className="text-xs font-medium text-[#1D2433]">Upload document</span>
+              </div>
+              
+              {/* Connector Line 1 */}
+              <div className="w-16 h-[1px] bg-[#08875D] mt-[-16px]"></div>
+              
+              {/* Step 2: Process Claim */}
+              <div className="flex flex-col items-center gap-1">
+                <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[#EDFDF8] border border-[#08875D]">
+                  <Check className="w-4 h-4 text-[#08875D]" />
+                </div>
+                <span className="text-xs font-medium text-[rgba(29,36,51,0.8)]">Process Claim</span>
+              </div>
+              
+              {/* Connector Line 2 */}
+              <div className="w-16 h-[1px] border-t border-dashed border-[#D8DDE7] mt-[-16px]"></div>
+              
+              {/* Step 3: Successfully Processed */}
+              <div className="flex flex-col items-center gap-1">
+                <div className="flex items-center justify-center w-6 h-6 rounded-full border border-[rgba(29,36,51,0.8)]">
+                  <div className="w-3.5 h-3.5 rounded-full bg-[rgba(29,36,51,0.8)]"></div>
+                </div>
+                <span className="text-xs font-medium text-[rgba(29,36,51,0.65)]">Successfully Processed</span>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Back Button and Claim Number - Only show for historical view */}
+        {isHistoricalView && (
+          <div className="flex items-center gap-3 mb-6">
+            <button
+              onClick={handleBackToClaims}
+              className="text-[rgba(29,36,51,0.8)] hover:text-[#1D2433] transition-colors"
+            >
+              <ArrowLeft className="w-6 h-6" />
+            </button>
+            <h2 className="text-2xl font-medium text-[rgba(29,36,51,0.8)]">
+              Claim No: {claimNumber}
+            </h2>
+          </div>
+        )}
+
+        {/* Success Icon - Only show for newly processed claims */}
+        {!isHistoricalView && (
+          <div className="flex justify-center mb-8">
+            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-green-800">
+              <Check className="w-8 h-8 text-white" />
+            </div>
+          </div>
+        )}
+        
         <div className="text-center mb-12">
-          <h1 className="text-2xl font-medium text-[#1D2433] mb-4">
-            {fileName} Successfully Processed
-          </h1>
+          {!isHistoricalView && (
+            <h1 className="text-2xl font-medium text-[#1D2433] mb-4">
+              {fileName} Successfully Processed
+            </h1>
+          )}
 
           {/* Sanity Check Result */}
           {claimData.sanity_check_result && (
@@ -233,10 +329,12 @@ export default function ProcessedPage() {
           </button>
 
           <button
-            onClick={handleGoHome}
+            onClick={isHistoricalView ? handleBackToClaims : handleGoHome}
             className="px-6 py-3 bg-gradient-to-r from-[#2F5FED] to-[#547DF5] text-white rounded-lg hover:from-[#2854D6] hover:to-[#4B7AE8] transition-all"
           >
-            <span className="text-sm font-medium">Go Home</span>
+            <span className="text-sm font-medium">
+              {isHistoricalView ? 'Back to Claims' : 'Go Home'}
+            </span>
           </button>
         </div>
       </div>

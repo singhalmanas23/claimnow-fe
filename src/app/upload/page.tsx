@@ -5,12 +5,14 @@ import { useRouter } from 'next/navigation';
 import UploadComponent from '../../components/UploadComponent';
 import { useExtractClaim } from '@/hooks/use-claims';
 import { useCurrentUser } from '@/hooks/use-auth';
+import { useClaims } from '@/hooks/use-claims';
 import type { ExtractedDataWithConfidence } from '@/lib/api-types';
 
 export default function UploadPage() {
   const router = useRouter();
   const extractClaimMutation = useExtractClaim();
   const { data: currentUser, isLoading: userLoading } = useCurrentUser();
+  const { data: claims } = useClaims({ limit: 5 }); // Get last 5 claims
   
   const [uploadState, setUploadState] = useState<'empty' | 'processing' | 'success'>('empty');
   const [extractedData, setExtractedData] = useState<ExtractedDataWithConfidence | null>(null);
@@ -264,9 +266,27 @@ export default function UploadPage() {
         {/* Recent Claims Section */}
         <div className="w-full max-w-[1312px] mx-auto px-16">
           <div className="bg-white/90 backdrop-blur-sm rounded-[24px] p-6">
-            <h3 className="font-poppins font-medium text-[20px] leading-[36px] text-[#1D2433]">
-              Recent Processed Claims (0)
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="font-poppins font-medium text-[20px] leading-[36px] text-[#1D2433]">
+                Recent Processed Claims ({claims?.length || 0})
+              </h3>
+              {claims && claims.length > 0 && (
+                <button
+                  onClick={() => router.push('/claims')}
+                  className="text-[#2F5FED] hover:text-[#2854D6] font-medium text-sm flex items-center gap-1 transition-colors"
+                >
+                  View All
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+              )}
+            </div>
+            {claims && claims.length > 0 && (
+              <div className="mt-4 text-sm text-gray-600">
+                You have {claims.length} claim{claims.length !== 1 ? 's' : ''} in your history.
+              </div>
+            )}
           </div>
         </div>
       </main>

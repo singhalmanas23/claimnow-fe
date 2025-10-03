@@ -124,7 +124,8 @@ export default function ReviewPage() {
     } else {
       console.warn('Review: No extracted data found in sessionStorage');
     }
-  }, [handlePolicyFieldChange, setItemizedCharges]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only once on mount - dependencies would cause infinite loop
 
   const handleProcessNow = async () => {
     setIsSubmitting(true);
@@ -148,6 +149,13 @@ export default function ReviewPage() {
         })),
       };
 
+      console.log('Review: Starting adjudication...');
+      console.log('Review: Extracted Data Payload:', extractedDataPayload);
+      console.log('Review: Insurance Details:', {
+        policy_number: policyInfo.policyNumber,
+        insurance_provider: policyInfo.insuranceProvider,
+      });
+
       // Call adjudication API
       const result: AdjudicatedClaim = await adjudicateClaimMutation.mutateAsync({
         extractedData: extractedDataPayload,
@@ -157,14 +165,32 @@ export default function ReviewPage() {
         },
       });
 
+      console.log('Review: Adjudication successful:', result);
+
       // Store adjudicated result in sessionStorage
       sessionStorage.setItem('adjudicatedClaimData', JSON.stringify(result));
       
       // Navigate to processed page
       router.push('/processed');
     } catch (err: any) {
-      setError(err?.response?.data?.detail || 'Failed to process claim. Please try again.');
-      console.error('Adjudication failed:', err);
+      console.error('Review: Adjudication failed:', err);
+      console.error('Review: Error response:', err?.response);
+      console.error('Review: Error message:', err?.message);
+      console.error('Review: Error code:', err?.code);
+      
+      let errorMessage = 'Failed to process claim. Please try again.';
+      
+      if (err?.code === 'ECONNABORTED') {
+        errorMessage = 'Request timeout. The server is taking too long to respond. Please try again.';
+      } else if (err?.code === 'ERR_NETWORK') {
+        errorMessage = 'Network error. Please check your connection and try again.';
+      } else if (err?.response?.data?.detail) {
+        errorMessage = err.response.data.detail;
+      } else if (err?.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }

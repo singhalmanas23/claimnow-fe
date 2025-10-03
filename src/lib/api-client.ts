@@ -18,10 +18,12 @@ const TOKEN_TYPE_KEY = 'token_type';
  */
 export const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 30000, // 30 seconds
+  timeout: 300000, // 300 seconds (5 minutes) for long-running operations
   headers: {
     'Content-Type': 'application/json',
   },
+  maxContentLength: Infinity,
+  maxBodyLength: Infinity,
 });
 
 /**
@@ -46,9 +48,28 @@ apiClient.interceptors.request.use(
  * Response interceptor - Handle errors globally
  */
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Log response for debugging
+    console.log('API Response:', {
+      url: response.config.url,
+      status: response.status,
+      dataType: typeof response.data,
+      dataKeys: response.data ? Object.keys(response.data) : [],
+    });
+    return response;
+  },
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+
+    // Log detailed error information
+    console.error('API Error:', {
+      message: error.message,
+      code: error.code,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      url: error.config?.url,
+      method: error.config?.method,
+    });
 
     // Handle 401 Unauthorized - Token expired or invalid
     if (error.response?.status === 401 && !originalRequest._retry) {
