@@ -110,9 +110,111 @@ export default function ProcessedPage() {
       reason: item.status,
     }));
 
-  const handleDownloadPdf = () => {
-    console.log("Downloading PDF...");
-    // TODO: Implement PDF download
+  const handleDownloadCSV = () => {
+    if (!claimData) return;
+
+    // Prepare CSV data
+    const headers = [
+      'Description',
+      'Quantity',
+      'Unit Price',
+      'Total Amount',
+      'Allowed Amount',
+      'Disallowed Amount',
+      'Status',
+      'Reason'
+    ];
+
+    const rows = claimData.adjudicated_line_items.map(item => [
+      item.description,
+      item.quantity,
+      item.unit_price,
+      item.total_amount,
+      item.allowed_amount,
+      item.disallowed_amount,
+      item.status,
+      item.reason || ''
+    ]);
+
+    // Add summary rows
+    rows.push([]);
+    rows.push(['Summary', '', '', '', '', '', '', '']);
+    rows.push(['Total Claimed Amount', '', '', '', claimedAmount, '', '', '']);
+    rows.push(['Total Unclaimed Amount', '', '', '', unclaimedAmount, '', '', '']);
+    rows.push(['Claim Percentage', '', '', '', `${claimPercentage}%`, '', '', '']);
+
+    // Convert to CSV
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    // Download CSV
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${fileName}_claim_report.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleDownloadExcel = () => {
+    if (!claimData) return;
+
+    // Prepare data for Excel-like format (Tab-separated values)
+    const headers = [
+      'Description',
+      'Quantity',
+      'Unit Price',
+      'Total Amount',
+      'Allowed Amount',
+      'Disallowed Amount',
+      'Status',
+      'Reason'
+    ];
+
+    const rows = claimData.adjudicated_line_items.map(item => [
+      item.description,
+      item.quantity,
+      item.unit_price,
+      item.total_amount,
+      item.allowed_amount,
+      item.disallowed_amount,
+      item.status,
+      item.reason || ''
+    ]);
+
+    // Add summary section
+    rows.push([]);
+    rows.push(['SUMMARY', '', '', '', '', '', '', '']);
+    rows.push(['Patient Name:', claimData.patient_name, '', '', '', '', '', '']);
+    rows.push(['Hospital:', claimData.hospital_name, '', '', '', '', '', '']);
+    rows.push(['Bill Number:', claimData.bill_no, '', '', '', '', '', '']);
+    rows.push(['Bill Date:', claimData.bill_date, '', '', '', '', '', '']);
+    rows.push([]);
+    rows.push(['Total Claimed Amount:', claimedAmount.toLocaleString(), '', '', '', '', '', '']);
+    rows.push(['Total Unclaimed Amount:', unclaimedAmount.toLocaleString(), '', '', '', '', '', '']);
+    rows.push(['Claim Percentage:', `${claimPercentage}%`, '', '', '', '', '', '']);
+
+    // Convert to TSV (Excel will open this correctly)
+    const tsvContent = [
+      headers.join('\t'),
+      ...rows.map(row => row.join('\t'))
+    ].join('\n');
+
+    // Download as Excel-compatible file
+    const blob = new Blob([tsvContent], { type: 'application/vnd.ms-excel' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${fileName}_claim_report.xls`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleGoHome = () => {
@@ -319,12 +421,22 @@ export default function ProcessedPage() {
         {/* Action Buttons - At the bottom */}
         <div className="flex justify-center gap-3 mt-12">
           <button
-            onClick={handleDownloadPdf}
+            onClick={handleDownloadCSV}
             className="flex items-center gap-2 px-5 py-3 border border-[#D8DDE7] rounded-lg hover:bg-gray-50 transition-colors"
           >
             <DownloadIcon className="w-4 h-4 text-[rgba(29,36,51,0.8)]" />
             <span className="text-sm font-medium text-[rgba(29,36,51,0.8)]">
-              Download Pdf
+              Download CSV
+            </span>
+          </button>
+
+          <button
+            onClick={handleDownloadExcel}
+            className="flex items-center gap-2 px-5 py-3 border border-[#D8DDE7] rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <DownloadIcon className="w-4 h-4 text-[rgba(29,36,51,0.8)]" />
+            <span className="text-sm font-medium text-[rgba(29,36,51,0.8)]">
+              Download Excel
             </span>
           </button>
 
