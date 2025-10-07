@@ -17,7 +17,6 @@ import type {
   AdjudicatedClaim,
 } from "@/lib/api-types";
 
-// New interface for field confidence tracking
 interface FieldConfidence {
   [key: string]: number;
 }

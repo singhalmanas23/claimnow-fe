@@ -107,7 +107,7 @@ export default function ProcessedPage() {
       unitPrice: item.unit_price,
       totalAmount: item.allowed_amount,
       claimStatus: Math.round((item.allowed_amount / item.total_amount) * 100),
-      reason: item.status,
+      reason: item.reason || item.status, // Use the actual reason if available, fallback to status
     }));
 
   const handleDownloadCSV = () => {
