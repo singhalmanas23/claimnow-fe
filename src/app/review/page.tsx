@@ -21,115 +21,115 @@ interface FieldConfidence {
   [key: string]: number;
 }
 
-const TEST_DATA: ExtractedDataWithConfidence = {
-  hospital_name: {
-    value: "Mahesh Smruti Multispeciality Hospital",
-    confidence: 0.98,
-  },
-  patient_name: {
-    value: "Mrs. Rohini Patil",
-    confidence: 0.98,
-  },
-  bill_date: {
-    value: null,
-    confidence: 0.95,
-  },
-  bill_no: {
-    value: "0308",
-    confidence: 0.98,
-  },
-  admission_date: {
-    value: "2020-10-16",
-    confidence: 0.98,
-  },
-  discharge_date: {
-    value: "2020-10-22",
-    confidence: 0.98,
-  },
-  net_payable_amount: {
-    value: 0,
-    confidence: 0.96,
-  },
-  line_items: [
-    {
-      description: {
-        value:
-          "Covid Ward Per Day Package (Included Bed Charges, Nursing Charges, Investigation, Hospital Drug, 2D Echo, USG, Hospital RMO Consultation Charges)",
-        confidence: 0.97,
-      },
-      quantity: {
-        value: 7,
-        confidence: 0.98,
-      },
-      unit_price: {
-        value: 4000,
-        confidence: 0.98,
-      },
-      total_amount: {
-        value: 28000,
-        confidence: 0.98,
-      },
-    },
-    {
-      description: {
-        value:
-          "Covid Ward Internal Medicine Consultant Charges - Dr. Nitin Lohokare",
-        confidence: 0.97,
-      },
-      quantity: {
-        value: 7,
-        confidence: 0.98,
-      },
-      unit_price: {
-        value: 1000,
-        confidence: 0.98,
-      },
-      total_amount: {
-        value: 7000,
-        confidence: 0.98,
-      },
-    },
-    {
-      description: {
-        value:
-          "COVID-19 Precautions Charges (PPE Kit, N-95 Mask, Sterilized Gloves - 2 Pair, Surgical Gloves - 1 Pair, Headcap, Faceshield, 3Ply Mask - 2 Pair, Disposable Bag, Shoe Cover, Sturlinum, Passco Charges, Sanitization)",
-        confidence: 0.97,
-      },
-      quantity: {
-        value: 7,
-        confidence: 0.98,
-      },
-      unit_price: {
-        value: 2000,
-        confidence: 0.98,
-      },
-      total_amount: {
-        value: 14000,
-        confidence: 0.98,
-      },
-    },
-    {
-      description: {
-        value: "Administration Charges @ 5%",
-        confidence: 0.98,
-      },
-      quantity: {
-        value: null,
-        confidence: 0.95,
-      },
-      unit_price: {
-        value: null,
-        confidence: 0.95,
-      },
-      total_amount: {
-        value: 2450,
-        confidence: 0.98,
-      },
-    },
-  ],
-};
+// const TEST_DATA: ExtractedDataWithConfidence = {
+//   hospital_name: {
+//     value: "Mahesh Smruti Multispeciality Hospital",
+//     confidence: 0.98,
+//   },
+//   patient_name: {
+//     value: "Mrs. Rohini Patil",
+//     confidence: 0.98,
+//   },
+//   bill_date: {
+//     value: null,
+//     confidence: 0.95,
+//   },
+//   bill_no: {
+//     value: "0308",
+//     confidence: 0.98,
+//   },
+//   admission_date: {
+//     value: "2020-10-16",
+//     confidence: 0.98,
+//   },
+//   discharge_date: {
+//     value: "2020-10-22",
+//     confidence: 0.98,
+//   },
+//   net_payable_amount: {
+//     value: 0,
+//     confidence: 0.96,
+//   },
+//   line_items: [
+//     {
+//       description: {
+//         value:
+//           "Covid Ward Per Day Package (Included Bed Charges, Nursing Charges, Investigation, Hospital Drug, 2D Echo, USG, Hospital RMO Consultation Charges)",
+//         confidence: 0.97,
+//       },
+//       quantity: {
+//         value: 7,
+//         confidence: 0.98,
+//       },
+//       unit_price: {
+//         value: 4000,
+//         confidence: 0.98,
+//       },
+//       total_amount: {
+//         value: 28000,
+//         confidence: 0.98,
+//       },
+//     },
+//     {
+//       description: {
+//         value:
+//           "Covid Ward Internal Medicine Consultant Charges - Dr. Nitin Lohokare",
+//         confidence: 0.97,
+//       },
+//       quantity: {
+//         value: 7,
+//         confidence: 0.98,
+//       },
+//       unit_price: {
+//         value: 1000,
+//         confidence: 0.98,
+//       },
+//       total_amount: {
+//         value: 7000,
+//         confidence: 0.98,
+//       },
+//     },
+//     {
+//       description: {
+//         value:
+//           "COVID-19 Precautions Charges (PPE Kit, N-95 Mask, Sterilized Gloves - 2 Pair, Surgical Gloves - 1 Pair, Headcap, Faceshield, 3Ply Mask - 2 Pair, Disposable Bag, Shoe Cover, Sturlinum, Passco Charges, Sanitization)",
+//         confidence: 0.97,
+//       },
+//       quantity: {
+//         value: 7,
+//         confidence: 0.98,
+//       },
+//       unit_price: {
+//         value: 2000,
+//         confidence: 0.98,
+//       },
+//       total_amount: {
+//         value: 14000,
+//         confidence: 0.98,
+//       },
+//     },
+//     {
+//       description: {
+//         value: "Administration Charges @ 5%",
+//         confidence: 0.98,
+//       },
+//       quantity: {
+//         value: null,
+//         confidence: 0.95,
+//       },
+//       unit_price: {
+//         value: null,
+//         confidence: 0.95,
+//       },
+//       total_amount: {
+//         value: 2450,
+//         confidence: 0.98,
+//       },
+//     },
+//   ],
+// };
 
-const USE_TEST_DATA = true;
+const USE_TEST_DATA = false;
 
 export default function ReviewPage() {
   const router = useRouter();
@@ -168,7 +168,7 @@ export default function ReviewPage() {
     // TESTING: Use static test data or real data
     if (USE_TEST_DATA) {
       //console.log("Review: Using TEST DATA");
-      parsed = TEST_DATA;
+      // parsed = TEST_DATA;
       setUploadedFileName("Test_Bill.pdf");
     } else {
       const storedData = sessionStorage.getItem("extractedClaimData");
