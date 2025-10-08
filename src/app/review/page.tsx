@@ -21,71 +21,115 @@ interface FieldConfidence {
   [key: string]: number;
 }
 
-// const TEST_DATA: ExtractedDataWithConfidence = {
-//   hospital_name: {
-//     value: "MAHESH SMRUTI MULTI SPECIALITY HOSPITAL",
-//     confidence: 1,
-//   },
-//   patient_name: {
-//     value: "PATIL NITIN SUDHAKAR",
-//     confidence: 1,
-//   },
-//   bill_date: {
-//     value: "2020-10-24",
-//     confidence: 0.5,
-//   },
-//   bill_no: {
-//     value: "0309",
-//     confidence: 0.5,
-//   },
-//   admission_date: {
-//     value: "2020-10-16",
-//     confidence: 0.5,
-//   },
-//   discharge_date: {
-//     value: "2020-10-24",
-//     confidence: 0.4,
-//   },
-//   net_payable_amount: {
-//     value: 117805.9,
-//     confidence: 0.5,
-//   },
-//   line_items: [
-//     {
-//       description: { value: "Hospitalization Breakup", confidence: 0.5 },
-//       quantity: { value: null, confidence: 0.5 },
-//       unit_price: { value: null, confidence: 0.5 },
-//       total_amount: { value: 103000, confidence: 0.5 },
-//     },
-//     {
-//       description: { value: "Lab Test Bill", confidence: 0.5 },
-//       quantity: { value: null, confidence: 0.5 },
-//       unit_price: { value: null, confidence: 0.5 },
-//       total_amount: { value: 11400, confidence: 0.5 },
-//     },
-//     {
-//       description: { value: "HRCT Scan Bill", confidence: 0.5 },
-//       quantity: { value: null, confidence: 0.5 },
-//       unit_price: { value: null, confidence: 0.5 },
-//       total_amount: { value: 2500, confidence: 0.5 },
-//     },
-//     {
-//       description: { value: "Medicines", confidence: 0.5 },
-//       quantity: { value: null, confidence: 0.5 },
-//       unit_price: { value: null, confidence: 0.5 },
-//       total_amount: { value: 1558, confidence: 0.5 },
-//     },
-//     {
-//       description: { value: "Medicines", confidence: 0.5 },
-//       quantity: { value: null, confidence: 0.5 },
-//       unit_price: { value: null, confidence: 0.5 },
-//       total_amount: { value: 10800, confidence: 0.5 },
-//     },
-//   ],
-// };
+const TEST_DATA: ExtractedDataWithConfidence = {
+  hospital_name: {
+    value: "Mahesh Smruti Multispeciality Hospital",
+    confidence: 0.98,
+  },
+  patient_name: {
+    value: "Mrs. Rohini Patil",
+    confidence: 0.98,
+  },
+  bill_date: {
+    value: null,
+    confidence: 0.95,
+  },
+  bill_no: {
+    value: "0308",
+    confidence: 0.98,
+  },
+  admission_date: {
+    value: "2020-10-16",
+    confidence: 0.98,
+  },
+  discharge_date: {
+    value: "2020-10-22",
+    confidence: 0.98,
+  },
+  net_payable_amount: {
+    value: 0,
+    confidence: 0.96,
+  },
+  line_items: [
+    {
+      description: {
+        value:
+          "Covid Ward Per Day Package (Included Bed Charges, Nursing Charges, Investigation, Hospital Drug, 2D Echo, USG, Hospital RMO Consultation Charges)",
+        confidence: 0.97,
+      },
+      quantity: {
+        value: 7,
+        confidence: 0.98,
+      },
+      unit_price: {
+        value: 4000,
+        confidence: 0.98,
+      },
+      total_amount: {
+        value: 28000,
+        confidence: 0.98,
+      },
+    },
+    {
+      description: {
+        value:
+          "Covid Ward Internal Medicine Consultant Charges - Dr. Nitin Lohokare",
+        confidence: 0.97,
+      },
+      quantity: {
+        value: 7,
+        confidence: 0.98,
+      },
+      unit_price: {
+        value: 1000,
+        confidence: 0.98,
+      },
+      total_amount: {
+        value: 7000,
+        confidence: 0.98,
+      },
+    },
+    {
+      description: {
+        value:
+          "COVID-19 Precautions Charges (PPE Kit, N-95 Mask, Sterilized Gloves - 2 Pair, Surgical Gloves - 1 Pair, Headcap, Faceshield, 3Ply Mask - 2 Pair, Disposable Bag, Shoe Cover, Sturlinum, Passco Charges, Sanitization)",
+        confidence: 0.97,
+      },
+      quantity: {
+        value: 7,
+        confidence: 0.98,
+      },
+      unit_price: {
+        value: 2000,
+        confidence: 0.98,
+      },
+      total_amount: {
+        value: 14000,
+        confidence: 0.98,
+      },
+    },
+    {
+      description: {
+        value: "Administration Charges @ 5%",
+        confidence: 0.98,
+      },
+      quantity: {
+        value: null,
+        confidence: 0.95,
+      },
+      unit_price: {
+        value: null,
+        confidence: 0.95,
+      },
+      total_amount: {
+        value: 2450,
+        confidence: 0.98,
+      },
+    },
+  ],
+};
 
-const USE_TEST_DATA = false;
-
+const USE_TEST_DATA = true;
 
 export default function ReviewPage() {
   const router = useRouter();
@@ -124,7 +168,7 @@ export default function ReviewPage() {
     // TESTING: Use static test data or real data
     if (USE_TEST_DATA) {
       //console.log("Review: Using TEST DATA");
-      //parsed = TEST_DATA;
+      parsed = TEST_DATA;
       setUploadedFileName("Test_Bill.pdf");
     } else {
       const storedData = sessionStorage.getItem("extractedClaimData");
@@ -240,6 +284,31 @@ export default function ReviewPage() {
     setError("");
 
     try {
+      // Validate required fields
+      const missingFields: string[] = [];
+      
+      if (!policyInfo.hospitalName?.trim()) missingFields.push("Hospital Name");
+      if (!policyInfo.patientName?.trim()) missingFields.push("Patient Name");
+      if (!policyInfo.billDate) missingFields.push("Bill Date");
+      if (!policyInfo.admissionDate) missingFields.push("Admission Date");
+      if (!policyInfo.policyNumber?.trim()) missingFields.push("Policy Number");
+      if (!policyInfo.insuranceProvider?.trim()) missingFields.push("Insurance Provider");
+
+      if (missingFields.length > 0) {
+        setError(
+          `Please fill in the following required fields: ${missingFields.join(", ")}`
+        );
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Validate itemized charges
+      if (itemizedCharges.length === 0) {
+        setError("Please add at least one itemized charge");
+        setIsSubmitting(false);
+        return;
+      }
+
       const extractedDataPayload: ExtractedData = {
         hospital_name: policyInfo.hospitalName,
         patient_name: policyInfo.patientName,
