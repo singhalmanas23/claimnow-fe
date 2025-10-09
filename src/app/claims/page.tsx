@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useClaims } from '@/hooks/use-claims';
 import { useCurrentUser } from '@/hooks/use-auth';
@@ -11,13 +11,12 @@ export default function ClaimsPage() {
   const router = useRouter();
   const { data: currentUser, isLoading: userLoading } = useCurrentUser();
   const { data: claims, isLoading: claimsLoading, error } = useClaims();
-  const [selectedClaim, setSelectedClaim] = useState<ClaimRecord | null>(null);
 
   // Helper function to safely extract value from confidence object or plain value
-  const safeExtractValue = (field: any): string => {
+  const safeExtractValue = (field: unknown): string => {
     if (!field) return '';
-    if (typeof field === 'object' && 'value' in field) {
-      return String(field.value || '');
+    if (typeof field === 'object' && field !== null && 'value' in field) {
+      return String((field as { value: unknown }).value || '');
     }
     return String(field);
   };
@@ -230,62 +229,72 @@ export default function ClaimsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {claims.map((claim) => (
-                  <tr key={claim.claim_id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        {claim.claim_id.slice(0, 8)}...
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        {claim.adjudicated_data?.patient_name || 
-                         safeExtractValue((claim.extracted_data as any)?.patient_name) || 'N/A'}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900 max-w-xs truncate">
-                        {claim.adjudicated_data?.hospital_name || 
-                         safeExtractValue((claim.extracted_data as any)?.hospital_name) || 'N/A'}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        {claim.adjudicated_data?.total_claimed_amount 
-                          ? formatCurrency(claim.adjudicated_data.total_claimed_amount)
-                          : 'N/A'}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-green-600">
-                        {claim.adjudicated_data?.total_amount_reimbursed 
-                          ? formatCurrency(claim.adjudicated_data.total_amount_reimbursed)
-                          : 'N/A'}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-600">
-                        {formatDate(claim.created_at)}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-3 py-1 text-xs font-medium rounded-full border ${getStatusColor(claim.status || 'processing')}`}>
-                        {(claim.status || 'processing').charAt(0).toUpperCase() + (claim.status || 'processing').slice(1)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <button
-                        onClick={() => handleViewDetails(claim)}
-                        className="text-[#2F5FED] hover:text-[#2854D6] font-medium flex items-center gap-1 transition-colors"
-                      >
-                        <span>View Details</span>
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {claims.map((claim) => {
+                  const extractedData = claim.extracted_data;
+                  const patientName = claim.adjudicated_data?.patient_name || 
+                    (extractedData && typeof extractedData === 'object' && 'patient_name' in extractedData 
+                      ? safeExtractValue(extractedData.patient_name) 
+                      : 'N/A');
+                  const hospitalName = claim.adjudicated_data?.hospital_name || 
+                    (extractedData && typeof extractedData === 'object' && 'hospital_name' in extractedData 
+                      ? safeExtractValue(extractedData.hospital_name) 
+                      : 'N/A');
+
+                  return (
+                    <tr key={claim.claim_id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">
+                          {claim.claim_id.slice(0, 8)}...
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {patientName}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-900 max-w-xs truncate">
+                          {hospitalName}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">
+                          {claim.adjudicated_data?.total_claimed_amount 
+                            ? formatCurrency(claim.adjudicated_data.total_claimed_amount)
+                            : 'N/A'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-green-600">
+                          {claim.adjudicated_data?.total_amount_reimbursed 
+                            ? formatCurrency(claim.adjudicated_data.total_amount_reimbursed)
+                            : 'N/A'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-600">
+                          {formatDate(claim.created_at)}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex px-3 py-1 text-xs font-medium rounded-full border ${getStatusColor(claim.status || 'processing')}`}>
+                          {(claim.status || 'processing').charAt(0).toUpperCase() + (claim.status || 'processing').slice(1)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <button
+                          onClick={() => handleViewDetails(claim)}
+                          className="text-[#2F5FED] hover:text-[#2854D6] font-medium flex items-center gap-1 transition-colors"
+                        >
+                          <span>View Details</span>
+                          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

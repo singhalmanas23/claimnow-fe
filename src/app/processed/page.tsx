@@ -6,11 +6,9 @@ import type { AdjudicatedClaim, ClaimRecord } from "@/lib/api-types";
 import { useCurrentUser } from "@/hooks/use-auth";
 import ProcessedHeader from "@/components/processed/ProcessedHeader";
 import UnclaimedTable from "@/components/processed/UnclaimedTable";
-import ClaimedTable from "@/components/processed/ClaimedTable";
-import {
-  DownloadIcon,
-} from "@/components/icons/ProcessedIcons";
+import { DownloadIcon } from "@/components/icons/ProcessedIcons";
 import { Check, ArrowLeft } from "lucide-react";
+import CombinedBreakupTable from "@/components/processed/CombinedBreakupTable";
 
 export default function ProcessedPage() {
   const router = useRouter();
@@ -24,46 +22,46 @@ export default function ProcessedPage() {
 
   useEffect(() => {
     // Check if this is a historical view (from claims history page)
-    const viewMode = searchParams?.get('view');
-    const claimId = searchParams?.get('claimId');
-    
-    if (viewMode === 'history' && claimId) {
+    const viewMode = searchParams?.get("view");
+    const claimId = searchParams?.get("claimId");
+
+    if (viewMode === "history" && claimId) {
       // Load from claims history
       setIsHistoricalView(true);
       setClaimNumber(claimId.slice(0, 8)); // Use first 8 chars as claim number
-      
-      const storedClaim = sessionStorage.getItem('selectedClaimData');
+
+      const storedClaim = sessionStorage.getItem("selectedClaimData");
       if (storedClaim) {
         try {
           const parsed: ClaimRecord = JSON.parse(storedClaim);
           setClaimRecord(parsed);
-          
+
           // Extract adjudicated data from claim record
           if (parsed.adjudicated_data) {
             setClaimData(parsed.adjudicated_data);
           }
         } catch (err) {
-          console.error('Failed to parse stored claim:', err);
-          router.push('/claims');
+          console.error("Failed to parse stored claim:", err);
+          router.push("/claims");
         }
       } else {
-        router.push('/claims');
+        router.push("/claims");
       }
     } else {
       // Load newly processed claim data
       setIsHistoricalView(false);
-      const storedData = sessionStorage.getItem('adjudicatedClaimData');
+      const storedData = sessionStorage.getItem("adjudicatedClaimData");
       if (storedData) {
         try {
           const parsed: AdjudicatedClaim = JSON.parse(storedData);
           setClaimData(parsed);
         } catch (err) {
-          console.error('Failed to parse adjudicated data:', err);
-          router.push('/upload');
+          console.error("Failed to parse adjudicated data:", err);
+          router.push("/upload");
         }
       } else {
         // No data available, redirect to upload page
-        router.push('/upload');
+        router.push("/upload");
       }
     }
     setLoading(false);
@@ -80,52 +78,55 @@ export default function ProcessedPage() {
     );
   }
 
-  const fileName = `${claimData.patient_name}_${claimData.bill_no || 'claim'}`;
+  const fileName = `${claimData.patient_name}_${claimData.bill_no || "claim"}`;
   const totalRequested = claimData.total_claimed_amount;
   const claimedAmount = claimData.total_amount_reimbursed;
   const unclaimedAmount = totalRequested - claimedAmount;
   const claimPercentage = Math.round((claimedAmount / totalRequested) * 100);
 
-  // Prepare unclaimed breakdown
-  const unclaimedBreakdown = claimData.adjudicated_line_items
-    .filter(item => item.disallowed_amount > 0)
-    .map((item, index) => ({
-      id: `unclaimed-${index}`,
+  // Prepare adjustments log breakdown (replaces unclaimed breakdown)
+  const adjustmentsBreakdown = (claimData.adjustments_log || []).map(
+    (log, index) => ({
+      id: `adjustment-${index}`,
       serialNo: (index + 1).toString(),
-      amount: item.disallowed_amount,
-      reason: item.reason || 'Not covered',
-    }));
+      amount: 0, // Not used for adjustments
+      reason: log,
+    })
+  );
 
-  // Prepare claimed breakdown
-  const claimedBreakdown = claimData.adjudicated_line_items
-    .filter(item => item.allowed_amount > 0)
-    .map((item, index) => ({
-      id: `claimed-${index}`,
+  // Prepare combined breakdown (claimed + disallowed items)
+  const combinedBreakdown = claimData.adjudicated_line_items.map(
+    (item, index) => ({
+      id: `item-${index}`,
       serialNo: (index + 1).toString(),
       costTitle: item.description,
       quantity: item.quantity,
       unitPrice: item.unit_price,
-      totalAmount: item.allowed_amount,
+      totalAmount: item.total_amount,
+      allowedAmount: item.allowed_amount,
+      disallowedAmount: item.disallowed_amount,
       claimStatus: Math.round((item.allowed_amount / item.total_amount) * 100),
-      reason: item.reason || item.status, // Use the actual reason if available, fallback to status
-    }));
+      status: item.status,
+      reason: item.reason || item.status,
+    })
+  );
 
   const handleDownloadCSV = () => {
     if (!claimData) return;
 
     // Prepare CSV data
     const headers = [
-      'Description',
-      'Quantity',
-      'Unit Price',
-      'Total Amount',
-      'Allowed Amount',
-      'Disallowed Amount',
-      'Status',
-      'Reason'
+      "Description",
+      "Quantity",
+      "Unit Price",
+      "Total Amount",
+      "Allowed Amount",
+      "Disallowed Amount",
+      "Status",
+      "Reason",
     ];
 
-    const rows = claimData.adjudicated_line_items.map(item => [
+    const rows = claimData.adjudicated_line_items.map((item) => [
       item.description,
       item.quantity,
       item.unit_price,
@@ -133,29 +134,56 @@ export default function ProcessedPage() {
       item.allowed_amount,
       item.disallowed_amount,
       item.status,
-      item.reason || ''
+      item.reason || "",
     ]);
+
+    // Add adjustments section
+    if (claimData.adjustments_log && claimData.adjustments_log.length > 0) {
+      rows.push([]);
+      rows.push(["Adjustments", "", "", "", "", "", "", ""]);
+      claimData.adjustments_log.forEach((log, idx) => {
+        rows.push([`${idx + 1}. ${log}`, "", "", "", "", "", "", ""]);
+      });
+    }
 
     // Add summary rows
     rows.push([]);
-    rows.push(['Summary', '', '', '', '', '', '', '']);
-    rows.push(['Total Claimed Amount', '', '', '', claimedAmount, '', '', '']);
-    rows.push(['Total Unclaimed Amount', '', '', '', unclaimedAmount, '', '', '']);
-    rows.push(['Claim Percentage', '', '', '', `${claimPercentage}%`, '', '', '']);
+    rows.push(["Summary", "", "", "", "", "", "", ""]);
+    rows.push(["Total Claimed Amount", "", "", "", claimedAmount, "", "", ""]);
+    rows.push([
+      "Total Unclaimed Amount",
+      "",
+      "",
+      "",
+      unclaimedAmount,
+      "",
+      "",
+      "",
+    ]);
+    rows.push([
+      "Claim Percentage",
+      "",
+      "",
+      "",
+      `${claimPercentage}%`,
+      "",
+      "",
+      "",
+    ]);
 
     // Convert to CSV
     const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
-    ].join('\n');
+      headers.join(","),
+      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
+    ].join("\n");
 
     // Download CSV
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `${fileName}_claim_report.csv`);
-    link.style.visibility = 'hidden';
+    link.setAttribute("href", url);
+    link.setAttribute("download", `${fileName}_claim_report.csv`);
+    link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -166,17 +194,17 @@ export default function ProcessedPage() {
 
     // Prepare data for Excel-like format (Tab-separated values)
     const headers = [
-      'Description',
-      'Quantity',
-      'Unit Price',
-      'Total Amount',
-      'Allowed Amount',
-      'Disallowed Amount',
-      'Status',
-      'Reason'
+      "Description",
+      "Quantity",
+      "Unit Price",
+      "Total Amount",
+      "Allowed Amount",
+      "Disallowed Amount",
+      "Status",
+      "Reason",
     ];
 
-    const rows = claimData.adjudicated_line_items.map(item => [
+    const rows = claimData.adjudicated_line_items.map((item) => [
       item.description,
       item.quantity,
       item.unit_price,
@@ -184,34 +212,79 @@ export default function ProcessedPage() {
       item.allowed_amount,
       item.disallowed_amount,
       item.status,
-      item.reason || ''
+      item.reason || "",
     ]);
+
+    // Add adjustments section
+    if (claimData.adjustments_log && claimData.adjustments_log.length > 0) {
+      rows.push([]);
+      rows.push(["ADJUSTMENTS", "", "", "", "", "", "", ""]);
+      claimData.adjustments_log.forEach((log, idx) => {
+        rows.push([`${idx + 1}. ${log}`, "", "", "", "", "", "", ""]);
+      });
+    }
 
     // Add summary section
     rows.push([]);
-    rows.push(['SUMMARY', '', '', '', '', '', '', '']);
-    rows.push(['Patient Name:', claimData.patient_name, '', '', '', '', '', '']);
-    rows.push(['Hospital:', claimData.hospital_name, '', '', '', '', '', '']);
-    rows.push(['Bill Number:', claimData.bill_no, '', '', '', '', '', '']);
-    rows.push(['Bill Date:', claimData.bill_date, '', '', '', '', '', '']);
+    rows.push(["SUMMARY", "", "", "", "", "", "", ""]);
+    rows.push([
+      "Patient Name:",
+      claimData.patient_name,
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+    ]);
+    rows.push(["Hospital:", claimData.hospital_name, "", "", "", "", "", ""]);
+    rows.push(["Bill Number:", claimData.bill_no, "", "", "", "", "", ""]);
+    rows.push(["Bill Date:", claimData.bill_date, "", "", "", "", "", ""]);
     rows.push([]);
-    rows.push(['Total Claimed Amount:', claimedAmount.toLocaleString(), '', '', '', '', '', '']);
-    rows.push(['Total Unclaimed Amount:', unclaimedAmount.toLocaleString(), '', '', '', '', '', '']);
-    rows.push(['Claim Percentage:', `${claimPercentage}%`, '', '', '', '', '', '']);
+    rows.push([
+      "Total Claimed Amount:",
+      claimedAmount.toLocaleString(),
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+    ]);
+    rows.push([
+      "Total Unclaimed Amount:",
+      unclaimedAmount.toLocaleString(),
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+    ]);
+    rows.push([
+      "Claim Percentage:",
+      `${claimPercentage}%`,
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+    ]);
 
     // Convert to TSV (Excel will open this correctly)
     const tsvContent = [
-      headers.join('\t'),
-      ...rows.map(row => row.join('\t'))
-    ].join('\n');
+      headers.join("\t"),
+      ...rows.map((row) => row.join("\t")),
+    ].join("\n");
 
     // Download as Excel-compatible file
-    const blob = new Blob([tsvContent], { type: 'application/vnd.ms-excel' });
-    const link = document.createElement('a');
+    const blob = new Blob([tsvContent], { type: "application/vnd.ms-excel" });
+    const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `${fileName}_claim_report.xls`);
-    link.style.visibility = 'hidden';
+    link.setAttribute("href", url);
+    link.setAttribute("download", `${fileName}_claim_report.xls`);
+    link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -219,9 +292,9 @@ export default function ProcessedPage() {
 
   const handleGoHome = () => {
     // Clear session storage
-    sessionStorage.removeItem('extractedClaimData');
-    sessionStorage.removeItem('adjudicatedClaimData');
-    sessionStorage.removeItem('selectedClaimData');
+    sessionStorage.removeItem("extractedClaimData");
+    sessionStorage.removeItem("adjudicatedClaimData");
+    sessionStorage.removeItem("selectedClaimData");
     router.push("/upload");
   };
 
@@ -231,9 +304,9 @@ export default function ProcessedPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <ProcessedHeader 
-        userName={currentUser?.full_name || currentUser?.username || 'User'}
-        userEmail={currentUser?.email || 'View profile'}
+      <ProcessedHeader
+        userName={currentUser?.full_name || currentUser?.username || "User"}
+        userEmail={currentUser?.email || "View profile"}
         isLoading={userLoading}
       />
 
@@ -247,29 +320,35 @@ export default function ProcessedPage() {
                 <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[#EDFDF8] border border-[#08875D]">
                   <Check className="w-4 h-4 text-[#08875D]" />
                 </div>
-                <span className="text-xs font-medium text-[#1D2433]">Upload document</span>
+                <span className="text-xs font-medium text-[#1D2433]">
+                  Upload document
+                </span>
               </div>
-              
+
               {/* Connector Line 1 */}
               <div className="w-16 h-[1px] bg-[#08875D] mt-[-16px]"></div>
-              
+
               {/* Step 2: Process Claim */}
               <div className="flex flex-col items-center gap-1">
                 <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[#EDFDF8] border border-[#08875D]">
                   <Check className="w-4 h-4 text-[#08875D]" />
                 </div>
-                <span className="text-xs font-medium text-[rgba(29,36,51,0.8)]">Process Claim</span>
+                <span className="text-xs font-medium text-[rgba(29,36,51,0.8)]">
+                  Process Claim
+                </span>
               </div>
-              
+
               {/* Connector Line 2 */}
               <div className="w-16 h-[1px] border-t border-dashed border-[#D8DDE7] mt-[-16px]"></div>
-              
+
               {/* Step 3: Successfully Processed */}
               <div className="flex flex-col items-center gap-1">
                 <div className="flex items-center justify-center w-6 h-6 rounded-full border border-[rgba(29,36,51,0.8)]">
                   <div className="w-3.5 h-3.5 rounded-full bg-[rgba(29,36,51,0.8)]"></div>
                 </div>
-                <span className="text-xs font-medium text-[rgba(29,36,51,0.65)]">Successfully Processed</span>
+                <span className="text-xs font-medium text-[rgba(29,36,51,0.65)]">
+                  Successfully Processed
+                </span>
               </div>
             </div>
           </div>
@@ -298,7 +377,7 @@ export default function ProcessedPage() {
             </div>
           </div>
         )}
-        
+
         <div className="text-center mb-12">
           {!isHistoricalView && (
             <h1 className="text-2xl font-medium text-[#1D2433] mb-4">
@@ -308,21 +387,28 @@ export default function ProcessedPage() {
 
           {/* Sanity Check Result */}
           {claimData.sanity_check_result && (
-            <div className={`mx-auto max-w-2xl mb-6 p-4 rounded-lg ${
-              claimData.sanity_check_result.is_reasonable 
-                ? 'bg-green-50 border border-green-200' 
-                : 'bg-yellow-50 border border-yellow-200'
-            }`}>
-              <p className={`text-sm font-medium ${
-                claimData.sanity_check_result.is_reasonable 
-                  ? 'text-green-700' 
-                  : 'text-yellow-700'
-              }`}>
-                {claimData.sanity_check_result.is_reasonable ? '✓' : '⚠'} {claimData.sanity_check_result.reasoning}
+            <div
+              className={`mx-auto max-w-2xl mb-6 p-4 rounded-lg ${
+                claimData.sanity_check_result.is_reasonable
+                  ? "bg-green-50 border border-green-200"
+                  : "bg-yellow-50 border border-yellow-200"
+              }`}
+            >
+              <p
+                className={`text-sm font-medium ${
+                  claimData.sanity_check_result.is_reasonable
+                    ? "text-green-700"
+                    : "text-yellow-700"
+                }`}
+              >
+                {claimData.sanity_check_result.is_reasonable ? "✓" : "⚠"}{" "}
+                {claimData.sanity_check_result.reasoning}
               </p>
               {claimData.sanity_check_result.flags.length > 0 && (
                 <div className="mt-2">
-                  <p className="text-xs font-medium text-gray-600 mb-1">Flags:</p>
+                  <p className="text-xs font-medium text-gray-600 mb-1">
+                    Flags:
+                  </p>
                   <ul className="list-disc list-inside text-xs text-gray-600">
                     {claimData.sanity_check_result.flags.map((flag, idx) => (
                       <li key={idx}>{flag}</li>
@@ -341,7 +427,7 @@ export default function ProcessedPage() {
             <div className="flex items-center gap-1">
               <span className="text-2xl font-normal text-[#1D2433]">₹</span>
               <span className="text-2xl font-medium text-[#1D2433]">
-                {totalRequested.toLocaleString()}.00
+                {totalRequested.toLocaleString()}
               </span>
             </div>
           </div>
@@ -366,7 +452,7 @@ export default function ProcessedPage() {
               <div className="flex items-center gap-1">
                 <span className="text-2xl font-normal text-[#08875D]">₹</span>
                 <span className="text-2xl font-medium text-[#08875D]">
-                  {claimedAmount.toLocaleString()}.00
+                  {claimedAmount.toLocaleString()}
                 </span>
               </div>
             </div>
@@ -389,7 +475,7 @@ export default function ProcessedPage() {
               <div className="flex items-center gap-1">
                 <span className="text-2xl font-normal text-[#E02D3C]">₹</span>
                 <span className="text-2xl font-medium text-[#E02D3C]">
-                  {unclaimedAmount.toLocaleString()}.00
+                  {unclaimedAmount.toLocaleString()}
                 </span>
               </div>
             </div>
@@ -399,23 +485,26 @@ export default function ProcessedPage() {
         {/* Divider */}
         <div className="w-full h-px bg-[#D8DDE7] mb-8"></div>
 
-        {/* Unclaimed Amount Breakup */}
+        {/* Adjustments Log Section */}
+        {adjustmentsBreakdown.length > 0 && (
+          <>
+            <div className="mb-16">
+              <h2 className="text-xl font-medium text-[#1D2433] mb-6">
+                Adjustments & Deductions
+              </h2>
+              <UnclaimedTable data={adjustmentsBreakdown} />
+            </div>
+            {/* Divider */}
+            <div className="w-full h-px bg-[#D8DDE7] mb-8"></div>
+          </>
+        )}
+
+        {/* Combined Amount Breakup */}
         <div className="mb-16">
           <h2 className="text-xl font-medium text-[#1D2433] mb-6">
-            Unclaimed Amount Breakup
+            Detailed Amount Breakup
           </h2>
-          <UnclaimedTable data={unclaimedBreakdown} />
-        </div>
-
-        {/* Divider */}
-        <div className="w-full h-px bg-[#D8DDE7] mb-8"></div>
-
-        {/* Claimed Amount Breakup */}
-        <div className="mb-16">
-          <h2 className="text-xl font-medium text-[#1D2433] mb-6">
-            Claimed Amount Breakup
-          </h2>
-          <ClaimedTable data={claimedBreakdown} />
+          <CombinedBreakupTable data={combinedBreakdown} />
         </div>
 
         {/* Action Buttons - At the bottom */}
@@ -445,7 +534,7 @@ export default function ProcessedPage() {
             className="px-6 py-3 bg-gradient-to-r from-[#2F5FED] to-[#547DF5] text-white rounded-lg hover:from-[#2854D6] hover:to-[#4B7AE8] transition-all"
           >
             <span className="text-sm font-medium">
-              {isHistoricalView ? 'Back to Claims' : 'Go Home'}
+              {isHistoricalView ? "Back to Claims" : "Go Home"}
             </span>
           </button>
         </div>

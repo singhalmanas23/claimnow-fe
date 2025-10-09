@@ -200,7 +200,6 @@ export default function ReviewPage() {
     if (!parsed) return;
 
     setExtractedData(parsed);
-    console.log("Review: Extracted data loaded:", parsed);
 
     // Track field confidences
     const confidences: FieldConfidence = {

@@ -16,10 +16,10 @@ export default function ClaimDetailsPage() {
   const [localClaim, setLocalClaim] = useState<ClaimRecord | null>(null);
 
   // Helper function to safely extract value from confidence object or plain value
-  const safeExtractValue = (field: any): string => {
+  const safeExtractValue = (field: unknown): string => {
     if (!field) return '';
-    if (typeof field === 'object' && 'value' in field) {
-      return String(field.value || '');
+    if (typeof field === 'object' && field !== null && 'value' in field) {
+      return String((field as { value: unknown }).value || '');
     }
     return String(field);
   };
@@ -182,21 +182,21 @@ export default function ClaimDetailsPage() {
                 <div className="text-sm text-gray-600">Patient Name</div>
                 <div className="text-base font-medium text-gray-900">
                   {adjudicatedData?.patient_name || 
-                   safeExtractValue((extractedData as any)?.patient_name) || 'N/A'}
+                   safeExtractValue(extractedData && typeof extractedData === 'object' && 'patient_name' in extractedData ? extractedData.patient_name : null) || 'N/A'}
                 </div>
               </div>
               <div>
                 <div className="text-sm text-gray-600">Hospital Name</div>
                 <div className="text-base font-medium text-gray-900">
                   {adjudicatedData?.hospital_name || 
-                   safeExtractValue((extractedData as any)?.hospital_name) || 'N/A'}
+                   safeExtractValue(extractedData && typeof extractedData === 'object' && 'hospital_name' in extractedData ? extractedData.hospital_name : null) || 'N/A'}
                 </div>
               </div>
               <div>
                 <div className="text-sm text-gray-600">Bill Number</div>
                 <div className="text-base font-medium text-gray-900">
                   {adjudicatedData?.bill_no || 
-                   safeExtractValue((extractedData as any)?.bill_no) || 'N/A'}
+                   safeExtractValue(extractedData && typeof extractedData === 'object' && 'bill_no' in extractedData ? extractedData.bill_no : null) || 'N/A'}
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
