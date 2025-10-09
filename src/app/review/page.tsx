@@ -288,10 +288,13 @@ export default function ReviewPage() {
       
       if (!policyInfo.hospitalName?.trim()) missingFields.push("Hospital Name");
       if (!policyInfo.patientName?.trim()) missingFields.push("Patient Name");
+      if(!policyInfo.billNo?.trim()) missingFields.push("Bill Number");
       if (!policyInfo.billDate) missingFields.push("Bill Date");
       if (!policyInfo.admissionDate) missingFields.push("Admission Date");
       if (!policyInfo.policyNumber?.trim()) missingFields.push("Policy Number");
       if (!policyInfo.insuranceProvider?.trim()) missingFields.push("Insurance Provider");
+      if(!policyInfo.dischargeDate) missingFields.push("Discharge Date");
+
 
       if (missingFields.length > 0) {
         setError(
