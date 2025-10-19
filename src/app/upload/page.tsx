@@ -7,6 +7,7 @@ import { useExtractClaim } from '@/hooks/use-claims';
 import { useCurrentUser } from '@/hooks/use-auth';
 import { useClaims } from '@/hooks/use-claims';
 import type { ExtractedDataWithConfidence } from '@/lib/api-types';
+import { pdfStorage } from '@/lib/pdf-storage';
 
 export default function UploadPage() {
   const router = useRouter();
@@ -19,27 +20,54 @@ export default function UploadPage() {
   const [error, setError] = useState<string>('');
   const [uploadedFileName, setUploadedFileName] = useState<string>('');
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [currentPdfId, setCurrentPdfId] = useState<string>('');
+  const [isPdfStored, setIsPdfStored] = useState<boolean>(false);
 
   const handleFileUpload = async (file: File) => {
     setUploadState('processing');
     setError('');
     setUploadedFileName(file.name);
     setUploadedFile(file);
+    setIsPdfStored(false);
     
     console.log('Upload: Starting file upload for', file.name, 'Size:', file.size, 'Type:', file.type);
     
-    // Convert file to base64 and store in sessionStorage for preview
+    // Generate unique ID for this PDF
+    const pdfId = `pdf_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    console.log('Upload: Generated PDF ID:', pdfId);
+    setCurrentPdfId(pdfId);
+    
+    // Convert file to base64 for preview
     const reader = new FileReader();
-    reader.onloadend = () => {
+    reader.onloadend = async () => {
       const base64Data = reader.result as string;
-      console.log('Upload: PDF converted to base64, storing in sessionStorage. Data length:', base64Data.length);
-      sessionStorage.setItem('uploadedPdfData', base64Data);
-      console.log('Upload: PDF data stored successfully');
+      console.log('Upload: PDF converted to base64. Size:', (base64Data.length / 1024 / 1024).toFixed(2), 'MB');
+      
+      try {
+        // Store in IndexedDB (supports large files)
+        await pdfStorage.storePDF(pdfId, file, base64Data);
+        
+        // Store current PDF ID in sessionStorage (small, won't exceed quota)
+        sessionStorage.setItem('currentPdfId', pdfId);
+        
+        // Cleanup old PDFs (keep only 3 most recent)
+        await pdfStorage.cleanupOldPDFs(3);
+        
+        setIsPdfStored(true);
+        console.log('Upload: PDF stored successfully in IndexedDB with ID:', pdfId);
+      } catch (err) {
+        console.error('Upload: Failed to store PDF:', err);
+        setError('Failed to store PDF. File might be too large.');
+        setIsPdfStored(false);
+      }
     };
+    
     reader.onerror = (error) => {
       console.error('Upload: Error reading file:', error);
       setError('Failed to read PDF file');
+      setIsPdfStored(false);
     };
+    
     reader.readAsDataURL(file);
     
     try {
@@ -61,9 +89,23 @@ export default function UploadPage() {
 
   const handleStartClaim = () => {
     if (extractedData) {
+      // Ensure PDF is stored before navigating
+      if (!isPdfStored) {
+        console.warn('Upload: PDF not yet stored, waiting...');
+        setError('Please wait, PDF is still loading...');
+        return;
+      }
+      
+      console.log('Upload: Starting claim with PDF ID:', currentPdfId);
+      
       // Store extracted data in sessionStorage to pass to review page
       sessionStorage.setItem('extractedClaimData', JSON.stringify(extractedData));
       sessionStorage.setItem('uploadedFileName', uploadedFileName);
+      
+      // Double-check currentPdfId is set
+      const verifyPdfId = sessionStorage.getItem('currentPdfId');
+      console.log('Upload: Verified PDF ID in storage:', verifyPdfId);
+      
       router.push('/review');
     }
   };
@@ -195,6 +237,16 @@ export default function UploadPage() {
         {error && (
           <div className="w-[739px] mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
             <p className="text-sm text-red-600 font-medium">{error}</p>
+          </div>
+        )}
+
+        {/* PDF Storage Status */}
+        {extractedData && uploadState === 'success' && !isPdfStored && (
+          <div className="w-[739px] mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center gap-2">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+              <p className="text-sm text-blue-700 font-medium">Preparing PDF preview...</p>
+            </div>
           </div>
         )}
 

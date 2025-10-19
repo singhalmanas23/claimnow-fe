@@ -67,7 +67,8 @@ class ClaimsService {
 
       console.log('ClaimsService: Adjudication response received:', response.data);
       return response.data;
-    } catch (error: any) {
+    } catch (error: any)//eslint-disable-line @typescript-eslint/no-explicit-any
+     {
       console.error('ClaimsService: Adjudication error:', error);
       console.error('ClaimsService: Error response:', error.response);
       console.error('ClaimsService: Error message:', error.message);

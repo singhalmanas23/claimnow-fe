@@ -128,10 +128,17 @@ export interface ExtractedDataWithConfidence {
 // Policy Types
 // ============================================================================
 
+export interface PolicyRuleValue {
+  limit?: number;
+  percentage?: number;
+  description?: string;
+  conditions?: Record<string, string | number | boolean>;
+}
+
 export interface Policy {
   policy_id: string;
   policy_name: string;
-  rules: Record<string, any>; // JSON object
+  rules: Record<string, PolicyRuleValue>;
 }
 
 // ============================================================================

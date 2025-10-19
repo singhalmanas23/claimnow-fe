@@ -5,6 +5,14 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useLogin } from "@/hooks/use-auth";
 
+interface resp {
+  response: {
+    data: {
+      detail: string;
+    };
+  };
+}
+
 const slides = [
   {
     title: "Fast, AI-Powered Claim Extraction",
@@ -26,7 +34,7 @@ const slides = [
 export default function SignInPage() {
   const router = useRouter();
   const loginMutation = useLogin();
-  
+
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [agreedToTerms, setAgreedToTerms] = useState(false);
@@ -45,18 +53,22 @@ export default function SignInPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    
+
     if (username && password && agreedToTerms) {
       try {
         await loginMutation.mutateAsync({
           username: username,
           password: password,
         });
-        
+
         // Redirect to upload page on success
         router.push("/upload");
-      } catch (err: any) {
-        setError(err?.response?.data?.detail || "Invalid credentials. Please try again.");
+      } catch (err: any) //eslint-disable-line @typescript-eslint/no-explicit-any
+      {
+        setError(
+          err?.response?.data?.detail ||
+            "Invalid credentials. Please try again."
+        );
       }
     }
   };
@@ -123,7 +135,7 @@ export default function SignInPage() {
                 <p className="text-sm text-red-600 font-medium">{error}</p>
               </div>
             )}
-            
+
             {/* Username Input */}
             <div className="relative">
               <input
@@ -186,9 +198,17 @@ export default function SignInPage() {
             {/* Sign In Button */}
             <button
               type="submit"
-              disabled={!username || !password || !agreedToTerms || loginMutation.isPending}
+              disabled={
+                !username ||
+                !password ||
+                !agreedToTerms ||
+                loginMutation.isPending
+              }
               className={`w-full h-14 border border-[#D8DDE7] rounded-lg font-poppins font-medium text-sm leading-[21px] transition-colors ${
-                username && password && agreedToTerms && !loginMutation.isPending
+                username &&
+                password &&
+                agreedToTerms &&
+                !loginMutation.isPending
                   ? "bg-gradient-to-br from-[#2F5FED] to-[#5D86FF] text-white border-transparent hover:from-[#2854D6] hover:to-[#4B7AE8]"
                   : "bg-[#F1F3F9] text-[rgba(29,36,51,0.65)] cursor-not-allowed"
               }`}

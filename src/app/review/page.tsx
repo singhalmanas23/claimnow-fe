@@ -346,24 +346,29 @@ export default function ReviewPage() {
 
       // Navigate to processed page
       router.push("/processed");
-    } catch (err: any) {
-      console.error("Review: Adjudication failed:", err);
-      console.error("Review: Error response:", err?.response);
-      console.error("Review: Error message:", err?.message);
-      console.error("Review: Error code:", err?.code);
+    } catch (err: unknown) {
+      const error = err as { 
+        response?: { data?: { detail?: string } };
+        message?: string;
+        code?: string;
+      };
+      console.error("Review: Adjudication failed:", error);
+      console.error("Review: Error response:", error?.response);
+      console.error("Review: Error message:", error?.message);
+      console.error("Review: Error code:", error?.code);
 
       let errorMessage = "Failed to process claim. Please try again.";
 
-      if (err?.code === "ECONNABORTED") {
+      if (error?.code === "ECONNABORTED") {
         errorMessage =
           "Request timeout. The server is taking too long to respond. Please try again.";
-      } else if (err?.code === "ERR_NETWORK") {
+      } else if (error?.code === "ERR_NETWORK") {
         errorMessage =
           "Network error. Please check your connection and try again.";
-      } else if (err?.response?.data?.detail) {
-        errorMessage = err.response.data.detail;
-      } else if (err?.message) {
-        errorMessage = err.message;
+      } else if (error?.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
+      } else if (error?.message) {
+        errorMessage = error.message;
       }
 
       setError(errorMessage);
