@@ -62,8 +62,6 @@ export interface InsuranceDetails {
 export interface ExtractedData {
   hospital_name: string;
   patient_name: string;
-  bill_no?: string | null;
-  bill_date: string; // ISO date string
   admission_date: string; // ISO date string
   discharge_date?: string | null; // ISO date string
   line_items: LineItem[];

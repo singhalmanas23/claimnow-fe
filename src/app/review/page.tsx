@@ -205,10 +205,8 @@ export default function ReviewPage() {
     const confidences: FieldConfidence = {
       hospitalName: parsed.hospital_name.confidence,
       patientName: parsed.patient_name.confidence,
-      billDate: parsed.bill_date.confidence,
       admissionDate: parsed.admission_date.confidence,
       dischargeDate: parsed.discharge_date?.confidence || 1,
-      billNo: parsed.bill_no?.confidence || 1,
       netPayableAmount: parsed.net_payable_amount.confidence,
     };
 
@@ -247,12 +245,7 @@ export default function ReviewPage() {
     // Pre-fill form with extracted data
     handlePolicyFieldChange("hospitalName", parsed.hospital_name.value);
     handlePolicyFieldChange("patientName", parsed.patient_name.value);
-    handlePolicyFieldChange("billDate", parsed.bill_date.value);
     handlePolicyFieldChange("admissionDate", parsed.admission_date.value);
-
-    if (parsed.bill_no?.value) {
-      handlePolicyFieldChange("billNo", parsed.bill_no.value);
-    }
     if (parsed.discharge_date?.value) {
       handlePolicyFieldChange("dischargeDate", parsed.discharge_date.value);
     }
@@ -288,8 +281,6 @@ export default function ReviewPage() {
       
       if (!policyInfo.hospitalName?.trim()) missingFields.push("Hospital Name");
       if (!policyInfo.patientName?.trim()) missingFields.push("Patient Name");
-      if(!policyInfo.billNo?.trim()) missingFields.push("Bill Number");
-      if (!policyInfo.billDate) missingFields.push("Bill Date");
       if (!policyInfo.admissionDate) missingFields.push("Admission Date");
       if (!policyInfo.policyNumber?.trim()) missingFields.push("Policy Number");
       if (!policyInfo.insuranceProvider?.trim()) missingFields.push("Insurance Provider");
@@ -314,8 +305,6 @@ export default function ReviewPage() {
       const extractedDataPayload: ExtractedData = {
         hospital_name: policyInfo.hospitalName,
         patient_name: policyInfo.patientName,
-        bill_no: policyInfo.billNo || null,
-        bill_date: policyInfo.billDate,
         admission_date: policyInfo.admissionDate,
         discharge_date: policyInfo.dischargeDate || null,
         net_payable_amount: itemizedCharges.reduce(

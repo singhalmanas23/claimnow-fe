@@ -260,17 +260,17 @@ const ReviewComponent: React.FC<ReviewComponentProps> = ({
               
               {/* Row 2 */}
               <div className="flex gap-4">
-                <div className="flex-1">
+                {/* <div className="flex-1">
                   <div className="h-14 border border-[#D8DDE7] rounded-lg px-5 py-2.5">
                     <div className="text-[11px] font-medium text-[rgba(29,36,51,0.65)] mb-1">Bill No</div>
                     <div className="text-sm font-medium text-[#1D2433]">{policyInfo.billNo}</div>
                   </div>
-                </div>
+                </div> */}
                 <div className="flex-1 relative">
-                  <div className="h-14 border border-[#D8DDE7] rounded-lg px-5 py-2.5">
+                  {/* <div className="h-14 border border-[#D8DDE7] rounded-lg px-5 py-2.5">
                     <div className="text-[11px] font-medium text-[rgba(29,36,51,0.65)] mb-1">Bill Date</div>
                     <div className="text-sm font-medium text-[#1D2433]">{policyInfo.billDate}</div>
-                  </div>
+                  </div> */}
                   <svg className="absolute right-4 top-4 w-6 h-6" viewBox="0 0 24 24" fill="none">
                     <path d="M8 2v3M16 2v3M3.5 9.09h17M21 8.5V17c0 1.5-.64 2.5-2.25 2.5H5.25C3.64 19.5 3 18.5 3 17V8.5c0-1.5.64-2.5 2.25-2.5H18.75C20.36 6 21 7 21 8.5z" stroke="rgba(29, 36, 51, 0.8)" strokeWidth="1.5"/>
                   </svg>

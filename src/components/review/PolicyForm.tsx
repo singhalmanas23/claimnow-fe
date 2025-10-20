@@ -80,7 +80,7 @@ export default function PolicyForm({ policyInfo, onFieldChange, fieldConfidences
           </div>
         </div>
         
-        <div className="flex gap-4">
+        {/* <div className="flex gap-4">
           <div className="flex-1 relative">
             <div className="text-sm font-medium text-[rgba(29,36,51,0.8)] mb-2">Bill No</div>
             <input
@@ -107,7 +107,7 @@ export default function PolicyForm({ policyInfo, onFieldChange, fieldConfidences
             <ConfidenceBadge confidence={fieldConfidences?.billDate} />
           </div>
         </div>
-        
+         */}
         <div className="flex gap-4">
           <div className="flex-1 relative">
             <div className="text-sm font-medium text-[rgba(29,36,51,0.8)] mb-2">Admission Date</div>
