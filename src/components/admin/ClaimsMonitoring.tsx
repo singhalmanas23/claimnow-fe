@@ -30,7 +30,16 @@ export function ClaimsMonitoring() {
           <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
         </div>
       ) : (
-        <ClaimsTable claims={claims || []} />
+        <ClaimsTable
+          claims={
+            (claims || []).map((claimRecord: any) => ({
+              ...claimRecord,
+              submitted_by_username: claimRecord.submitted_by_username ?? '',
+              total_claimed_amount: claimRecord.total_claimed_amount ?? 0,
+              last_error: claimRecord.last_error ?? '',
+            }))
+          }
+        />
       )}
     </div>
   );

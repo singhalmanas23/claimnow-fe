@@ -194,6 +194,16 @@ export interface ClaimRecord {
   updated_at: string;
 }
 
+export interface AdminClaim {
+  claim_id: string;
+  policy_id: string;
+  status: 'queued' | 'processing' | 'extracted' | 'adjudicating' | 'completed' | 'failed';
+  submitted_by_username: string;
+  total_claimed_amount: number;
+  updated_at: string;
+  last_error: string | null;
+}
+
 // ============================================================================
 // Request/Response Types
 // ============================================================================

@@ -115,7 +115,7 @@ export function usePolicy(policyId: string | null) {
     queryKey: policiesKeys.detail(policyId || ''),
     queryFn: () => usersService.getPolicyById(policyId!),
     enabled: !!policyId,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 }
 

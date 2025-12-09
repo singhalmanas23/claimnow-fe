@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import {
   DialogContent,
@@ -9,8 +10,14 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useCreateUser } from '@/hooks';
-import type { UserCreate } from '@/lib/api-types';
 
 interface CreateUserDialogProps {
   onClose: () => void;
@@ -18,100 +25,170 @@ interface CreateUserDialogProps {
 
 export function CreateUserDialog({ onClose }: CreateUserDialogProps) {
   const createUser = useCreateUser();
-  const [formData, setFormData] = useState<UserCreate>({
-    username: '',
-    email: undefined,
-    full_name: undefined,
-    password: '',
-    role_id: 2,
-  });
+  const [username, setUsername] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [roleId, setRoleId] = useState<number>(2); // Default to user role
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!username.trim()) newErrors.username = 'Username is required';
+    else if (username.length < 3) newErrors.username = 'Username must be at least 3 characters';
+    
+    if (!fullName.trim()) newErrors.fullName = 'Full name is required';
+    
+    if (!email.trim()) newErrors.email = 'Email is required';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      newErrors.email = 'Invalid email format';
+    }
+    
+    if (!password) newErrors.password = 'Password is required';
+    else if (password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async () => {
+    if (!validateForm()) return;
+
     try {
-      await createUser.mutateAsync(formData);
+      await createUser.mutateAsync({
+        username,
+        full_name: fullName,
+        email,
+        password,
+        role_id: roleId,
+      });
+
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create user:', error);
+      setErrors({
+        submit: error?.response?.data?.detail || 'Failed to create user. Please try again.',
+      });
     }
   };
 
   return (
-    <DialogContent className="sm:max-w-[500px]">
+    <DialogContent className="max-w-md">
       <DialogHeader>
         <DialogTitle className="text-gray-900">Create New User</DialogTitle>
         <DialogDescription className="text-gray-600">
-          Add a new user to the system. Username and password are required.
+          Add a new user to the system with credentials and role.
         </DialogDescription>
       </DialogHeader>
-      <form onSubmit={handleSubmit} className="space-y-4">
+
+      <div className="space-y-4 py-4">
         <div className="space-y-2">
-          <Label htmlFor="username" className="text-gray-700">Username *</Label>
+          <Label htmlFor="username" className="text-gray-700">
+            Username <span className="text-red-500">*</span>
+          </Label>
           <Input
             id="username"
-            value={formData.username}
-            onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-            placeholder="johndoe"
-            required
-            className="border-gray-300"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="e.g., johndoe"
+            className={`border-gray-300 ${errors.username ? 'border-red-500' : ''}`}
           />
+          {errors.username && <p className="text-xs text-red-600">{errors.username}</p>}
         </div>
+
         <div className="space-y-2">
-          <Label htmlFor="email" className="text-gray-700">Email</Label>
+          <Label htmlFor="fullName" className="text-gray-700">
+            Full Name <span className="text-red-500">*</span>
+          </Label>
+          <Input
+            id="fullName"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            placeholder="e.g., John Doe"
+            className={`border-gray-300 ${errors.fullName ? 'border-red-500' : ''}`}
+          />
+          {errors.fullName && <p className="text-xs text-red-600">{errors.fullName}</p>}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="email" className="text-gray-700">
+            Email <span className="text-red-500">*</span>
+          </Label>
           <Input
             id="email"
             type="email"
-            value={formData.email || ''}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value || undefined })}
-            placeholder="john@example.com"
-            className="border-gray-300"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="e.g., john@example.com"
+            className={`border-gray-300 ${errors.email ? 'border-red-500' : ''}`}
           />
+          {errors.email && <p className="text-xs text-red-600">{errors.email}</p>}
         </div>
+
         <div className="space-y-2">
-          <Label htmlFor="full_name" className="text-gray-700">Full Name</Label>
-          <Input
-            id="full_name"
-            value={formData.full_name || ''}
-            onChange={(e) => setFormData({ ...formData, full_name: e.target.value || undefined })}
-            placeholder="John Doe"
-            className="border-gray-300"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="password" className="text-gray-700">Password *</Label>
+          <Label htmlFor="password" className="text-gray-700">
+            Password <span className="text-red-500">*</span>
+          </Label>
           <Input
             id="password"
             type="password"
-            value={formData.password}
-            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            placeholder="••••••••"
-            required
-            className="border-gray-300"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Minimum 8 characters"
+            className={`border-gray-300 ${errors.password ? 'border-red-500' : ''}`}
           />
+          {errors.password && <p className="text-xs text-red-600">{errors.password}</p>}
         </div>
+
         <div className="space-y-2">
-          <Label htmlFor="role" className="text-gray-700">Role</Label>
-          <select
-            id="role"
-            className="flex h-9 w-full rounded-md border border-gray-300 bg-white px-3 py-1 text-sm text-gray-900 shadow-sm transition-colors focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            value={formData.role_id}
-            onChange={(e) =>
-              setFormData({ ...formData, role_id: Number(e.target.value) as 1 | 2 })
-            }
-          >
-            <option value={2}>User</option>
-            <option value={1}>Admin</option>
-          </select>
+          <Label htmlFor="role" className="text-gray-700">
+            Role
+          </Label>
+          <Select value={roleId.toString()} onValueChange={(value) => setRoleId(Number(value))}>
+            <SelectTrigger className="border-gray-300">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="1">Admin</SelectItem>
+              <SelectItem value="2">User</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-        <DialogFooter className="gap-2">
-          <Button type="button" variant="outline" onClick={onClose} className="border-gray-300 text-gray-700">
-            Cancel
-          </Button>
-          <Button type="submit" disabled={createUser.isPending} className="bg-blue-600 hover:bg-blue-700">
-            {createUser.isPending ? 'Creating...' : 'Create User'}
-          </Button>
-        </DialogFooter>
-      </form>
+
+        {errors.submit && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-sm text-red-600">{errors.submit}</p>
+          </div>
+        )}
+      </div>
+
+      <DialogFooter>
+        <Button
+          variant="outline"
+          onClick={onClose}
+          disabled={createUser.isPending}
+          className="border-gray-300"
+        >
+          Cancel
+        </Button>
+        <Button
+          onClick={handleSubmit}
+          disabled={createUser.isPending}
+          className="bg-blue-600 hover:bg-blue-700"
+        >
+          {createUser.isPending ? (
+            <>
+              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+              Creating...
+            </>
+          ) : (
+            'Create User'
+          )}
+        </Button>
+      </DialogFooter>
     </DialogContent>
   );
 }

@@ -1,42 +1,49 @@
 import React from 'react';
-import { CheckCircle, XCircle, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 interface ClaimStatusBadgeProps {
-  status?: string;
+  status: string;
 }
 
 export function ClaimStatusBadge({ status }: ClaimStatusBadgeProps) {
-  const getStatusConfig = (status?: string) => {
-    const normalizedStatus = status?.toLowerCase();
+  const getStatusConfig = (status: string) => {
+    const normalizedStatus = status.toLowerCase();
     
     switch (normalizedStatus) {
       case 'completed':
         return {
-          variant: 'success' as const,
-          className: 'bg-green-100 text-green-700 border-green-200',
-          icon: <CheckCircle className="h-3 w-3 mr-1" />,
+          label: 'Completed',
+          className: 'bg-green-100 text-green-800 border-green-200 hover:bg-green-100',
+        };
+      case 'extracted':
+        return {
+          label: 'Extracted',
+          className: 'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-100',
+        };
+      case 'adjudicating':
+        return {
+          label: 'Adjudicating',
+          className: 'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-100',
         };
       case 'processing':
-      case 'adjudicating':
-      case 'extracting':
         return {
-          variant: 'warning' as const,
-          className: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-          icon: <Clock className="h-3 w-3 mr-1 animate-spin" />,
+          label: 'Processing',
+          className: 'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-100',
+        };
+      case 'queued':
+        return {
+          label: 'Queued',
+          className: 'bg-gray-100 text-gray-800 border-gray-200 hover:bg-gray-100',
         };
       case 'failed':
-      case 'error':
         return {
-          variant: 'destructive' as const,
-          className: 'bg-red-100 text-red-700 border-red-200',
-          icon: <XCircle className="h-3 w-3 mr-1" />,
+          label: 'Failed',
+          className: 'bg-red-100 text-red-800 border-red-200 hover:bg-red-100',
         };
       default:
         return {
-          variant: 'secondary' as const,
-          className: 'bg-gray-100 text-gray-700 border-gray-200',
-          icon: null,
+          label: status.charAt(0).toUpperCase() + status.slice(1),
+          className: 'bg-gray-100 text-gray-800 border-gray-200 hover:bg-gray-100',
         };
     }
   };
@@ -44,9 +51,8 @@ export function ClaimStatusBadge({ status }: ClaimStatusBadgeProps) {
   const config = getStatusConfig(status);
 
   return (
-    <Badge variant={config.variant} className={`flex items-center w-fit ${config.className}`}>
-      {config.icon}
-      {status || 'Unknown'}
+    <Badge className={`text-xs font-medium px-2 py-1 ${config.className}`}>
+      {config.label}
     </Badge>
   );
 }

@@ -4,13 +4,21 @@ import { Button } from '@/components/ui/Button';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { useUsers } from '@/hooks';
 import { CreateUserDialog } from './CreateUserDialog';
+import { EditUserDialog } from './EditUserDialog';
 import { UsersTable } from './UsersTable';
+import { User } from '@/lib/api-types';
+
 
 export function UsersManagement() {
   const { data: users, isLoading, refetch } = useUsers();
   console.log('Users data:', users);
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+
+  const handleEditClose = () => {
+    setEditingUser(null);
+  };
 
   return (
     <div className="space-y-4">
@@ -44,8 +52,18 @@ export function UsersManagement() {
           <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
         </div>
       ) : (
-        <UsersTable users={users || []} />
+        <UsersTable users={users || []} onEdit={setEditingUser} />
       )}
+
+      <Dialog open={!!editingUser} onOpenChange={(open) => !open && handleEditClose()}>
+        {editingUser && (
+          <EditUserDialog
+            user={editingUser}
+            onClose={handleEditClose}
+          />
+        )}
+      </Dialog>
     </div>
   );
 }
+
