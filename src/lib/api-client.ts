@@ -6,21 +6,15 @@
 
 import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 
-// API Base URL - Configure based on environment
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
-
-// Token storage keys
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://nonjudicial-glacially-eugene.ngrok-free.dev';
 const TOKEN_KEY = 'access_token';
 const TOKEN_TYPE_KEY = 'token_type';
-
-/**
- * Create axios instance with base configuration
- */
 export const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 300000, // 300 seconds (5 minutes) for long-running operations
+  timeout: 300000,
   headers: {
     'Content-Type': 'application/json',
+    'ngrok-skip-browser-warning': 'true', // Bypass ngrok browser warning
   },
   maxContentLength: Infinity,
   maxBodyLength: Infinity,
@@ -54,7 +48,7 @@ apiClient.interceptors.response.use(
       url: response.config.url,
       status: response.status,
       dataType: typeof response.data,
-      dataKeys: response.data ? Object.keys(response.data) : [],
+      data: response.data, // Log actual data
     });
     return response;
   },
@@ -70,15 +64,10 @@ apiClient.interceptors.response.use(
       url: error.config?.url,
       method: error.config?.method,
     });
-
-    // Handle 401 Unauthorized - Token expired or invalid
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
-      
-      // Clear invalid token
       clearAuth();
-      
-      // Redirect to login page
+
       if (typeof window !== 'undefined') {
         window.location.href = '/login';
       }

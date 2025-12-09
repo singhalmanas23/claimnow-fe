@@ -17,8 +17,10 @@ export {
   useClaims,
   useClaim,
   useExtractClaim,
+  useClaimStatus,
+  useExtractedData,
   useAdjudicateClaim,
-  useProcessCompleteClaim,
+  useAdjudicatedData,
   claimsKeys,
 } from './use-claims';
 
@@ -29,7 +31,10 @@ export {
   useUpdateUser,
   usePolicies,
   usePolicy,
+  useCreatePolicy,
   useUpdatePolicy,
+  usePartialUpdatePolicy,
+  useDeletePolicy,
   usersKeys,
   policiesKeys,
 } from './use-users';

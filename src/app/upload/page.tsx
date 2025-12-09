@@ -1,27 +1,67 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import UploadComponent from '../../components/UploadComponent';
-import { useExtractClaim } from '@/hooks/use-claims';
+import { useExtractClaim, useClaimStatus, useExtractedData } from '@/hooks/use-claims';
 import { useCurrentUser } from '@/hooks/use-auth';
 import { useClaims } from '@/hooks/use-claims';
-import type { ExtractedDataWithConfidence } from '@/lib/api-types';
+import type { ExtractedDataResponse } from '@/lib/api-types';
 import { pdfStorage } from '@/lib/pdf-storage';
 
 export default function UploadPage() {
   const router = useRouter();
   const extractClaimMutation = useExtractClaim();
   const { data: currentUser, isLoading: userLoading } = useCurrentUser();
-  const { data: claims } = useClaims({ limit: 5 }); // Get last 5 claims
+  const { data: claims } = useClaims({ limit: 5 });
   
   const [uploadState, setUploadState] = useState<'empty' | 'processing' | 'success'>('empty');
-  const [extractedData, setExtractedData] = useState<ExtractedDataWithConfidence | null>(null);
+  const [extractedData, setExtractedData] = useState<ExtractedDataResponse | null>(null);
   const [error, setError] = useState<string>('');
   const [uploadedFileName, setUploadedFileName] = useState<string>('');
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [, setUploadedFile] = useState<File | null>(null);
   const [currentPdfId, setCurrentPdfId] = useState<string>('');
   const [isPdfStored, setIsPdfStored] = useState<boolean>(false);
+  const [claimId, setClaimId] = useState<string | null>(null);
+  const [isPolling, setIsPolling] = useState<boolean>(false);
+  
+  // Poll claim status every 2 seconds when we have a claim_id
+  const { data: statusData } = useClaimStatus(claimId, isPolling);
+  
+  // Fetch extracted data only when status is 'completed'
+  const shouldFetchExtracted = statusData?.status === 'extracted';
+  const { data: extractedDataResponse } = useExtractedData(
+    claimId,
+    shouldFetchExtracted
+  );
+
+  // Handle polling results
+  useEffect(() => {
+    if (statusData) {
+      console.log('Upload: Status update:', statusData.status, '| Polling active:', isPolling);
+      
+      if (statusData.status === 'extracted') {
+        // Stop polling when completed
+        setIsPolling(false);
+        console.log('Upload: ✓ Extraction completed, stopping poll');
+      } else if (statusData.status === 'failed') {
+        // Stop polling on failure
+        setIsPolling(false);
+        setUploadState('empty');
+        setError(statusData.last_error || 'Extraction failed. Please try again.');
+        console.error('Upload: ✗ Extraction failed:', statusData.last_error);
+      }
+    }
+  }, [statusData, isPolling]);
+  
+  // Handle extracted data response
+  useEffect(() => {
+    if (extractedDataResponse && statusData?.status === 'extracted') {
+      console.log('Upload: Extracted data received:', extractedDataResponse);
+      setExtractedData(extractedDataResponse);
+      setUploadState('success');
+    }
+  }, [extractedDataResponse, statusData]);
 
   const handleFileUpload = async (file: File) => {
     setUploadState('processing');
@@ -29,10 +69,10 @@ export default function UploadPage() {
     setUploadedFileName(file.name);
     setUploadedFile(file);
     setIsPdfStored(false);
+    setClaimId(null);
+    setExtractedData(null);
     
     console.log('Upload: Starting file upload for', file.name, 'Size:', file.size, 'Type:', file.type);
-    
-    // Generate unique ID for this PDF
     const pdfId = `pdf_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     console.log('Upload: Generated PDF ID:', pdfId);
     setCurrentPdfId(pdfId);
@@ -62,8 +102,8 @@ export default function UploadPage() {
       }
     };
     
-    reader.onerror = (error) => {
-      console.error('Upload: Error reading file:', error);
+    reader.onerror = () => {
+      console.error('Upload: Error reading file');
       setError('Failed to read PDF file');
       setIsPdfStored(false);
     };
@@ -73,12 +113,18 @@ export default function UploadPage() {
     try {
       console.log('Upload: Calling extraction API...');
       const result = await extractClaimMutation.mutateAsync(file);
-      setExtractedData(result);
-      setUploadState('success');
-      console.log('Upload: Extraction successful:', result);
-    } catch (err: any) {
+      console.log('Upload: Got claim_id:', result.claim_id, 'status:', result.status);
+      
+      // Start polling for status
+      setClaimId(result.claim_id);
+      setIsPolling(true);
+      
+    } catch (err: unknown) {
       setUploadState('empty');
-      setError(err?.response?.data?.detail || 'Failed to extract claim data. Please try again.');
+      const errorMessage = err && typeof err === 'object' && 'response' in err 
+        ? ((err as { response?: { data?: { detail?: string } } }).response?.data?.detail || 'Failed to extract claim data. Please try again.')
+        : 'Failed to extract claim data. Please try again.';
+      setError(errorMessage);
       console.error('Upload: Extraction failed:', err);
     }
   };
@@ -97,12 +143,15 @@ export default function UploadPage() {
       }
       
       console.log('Upload: Starting claim with PDF ID:', currentPdfId);
-      
-      // Store extracted data in sessionStorage to pass to review page
       sessionStorage.setItem('extractedClaimData', JSON.stringify(extractedData));
       sessionStorage.setItem('uploadedFileName', uploadedFileName);
       
-      // Double-check currentPdfId is set
+      // Store claim_id for adjudication workflow
+      if (claimId) {
+        sessionStorage.setItem('currentClaimId', claimId);
+        console.log('Upload: Stored claim ID:', claimId);
+      }
+      
       const verifyPdfId = sessionStorage.getItem('currentPdfId');
       console.log('Upload: Verified PDF ID in storage:', verifyPdfId);
       
@@ -115,6 +164,8 @@ export default function UploadPage() {
     setExtractedData(null);
     setError('');
     setUploadedFileName('');
+    setClaimId(null);
+    setIsPolling(false);
   };
 
   return (
@@ -240,6 +291,20 @@ export default function UploadPage() {
           </div>
         )}
 
+        {/* Polling Status */}
+        {isPolling && statusData && (
+          <div className="w-[739px] mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center gap-2">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+              <p className="text-sm text-blue-700 font-medium">
+                {statusData.status === 'queued' && 'Processing claim... (queued)'}
+                {statusData.status === 'processing' && 'Extracting data from document...'}
+                {statusData.status === 'adjudicating' && 'Adjudicating claim...'}
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* PDF Storage Status */}
         {extractedData && uploadState === 'success' && !isPdfStored && (
           <div className="w-[739px] mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
@@ -251,7 +316,7 @@ export default function UploadPage() {
         )}
 
         {/* Success Message with Extraction Status */}
-        {/* {extractedData && uploadState === 'success' && (
+        {extractedData && uploadState === 'success' && (
           <div className="w-[739px] mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
             <p className="text-sm text-green-700 font-medium">
               ✓ Document extracted successfully! Patient: {extractedData.patient_name.value} | 
@@ -259,7 +324,7 @@ export default function UploadPage() {
               Amount: ₹{extractedData.net_payable_amount.value.toLocaleString()}
             </p>
           </div>
-        )} */}
+        )}
 
         {/* Upload Section */}
         <div className="w-[739px] h-[312px] bg-white/90 backdrop-blur-sm rounded-[32px] relative mb-[241px]">

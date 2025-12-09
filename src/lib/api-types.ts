@@ -60,12 +60,16 @@ export interface InsuranceDetails {
 }
 
 export interface ExtractedData {
+  bill_date:Date;
+  bill_no:string;
   hospital_name: string;
   patient_name: string;
   admission_date: string; // ISO date string
   discharge_date?: string | null; // ISO date string
   line_items: LineItem[];
   net_payable_amount: number;
+  policy_no?: string;
+  insurance_provider?: string;
 }
 
 export interface AdjudicatedLineItem extends LineItem {
@@ -126,22 +130,57 @@ export interface ExtractedDataWithConfidence {
 // Policy Types
 // ============================================================================
 
-export interface PolicyRuleValue {
-  limit?: number;
-  percentage?: number;
+export interface SubLimitRule {
+  type?: string; // e.g., "fixed", "percentage_of_sum_insured"
   description?: string;
-  conditions?: Record<string, string | number | boolean>;
+  value?: number;
+  max_cap_per_day?: number;
+  per?: string; // e.g., "day"
+  examples?: string[];
+}
+
+export interface PolicyRules {
+  sum_insured: number;
+  co_payment_percentage: number;
+  sub_limits: Record<string, SubLimitRule>;
 }
 
 export interface Policy {
   policy_id: string;
   policy_name: string;
-  rules: Record<string, PolicyRuleValue>;
+  rules: PolicyRules;
+}
+
+export interface PolicyCreate {
+  policy_id: string;
+  policy_name: string;
+  rules: PolicyRules;
+}
+
+export interface PolicyUpdate {
+  policy_name: string;
+  rules: PolicyRules;
+}
+
+export interface PolicyPartialUpdate {
+  policy_name?: string;
+  rules?: Partial<PolicyRules>;
 }
 
 // ============================================================================
 // Claim Database Types
 // ============================================================================
+
+export interface ClaimIntakeResponse {
+  claim_id: string;
+  status: string;
+}
+
+export interface ClaimStatusResponse {
+  claim_id: string;
+  status: 'queued' | 'processing' | 'extracted' | 'failed' | 'adjudicating' | 'completed';
+  last_error?: string | null;
+}
 
 export interface ClaimRecord {
   claim_id: string;
@@ -159,18 +198,19 @@ export interface ClaimRecord {
 // Request/Response Types
 // ============================================================================
 
-export interface ClaimIntakeResponse {
-  claim_id: string;
-  status: string;
-}
-
 export interface ExtractClaimRequest {
   file: File;
 }
 
 export interface AdjudicateClaimRequest {
+  claim_id: string;
   extracted_data: ExtractedData;
-  insurance_details: InsuranceDetails;
+
+}
+
+export interface ExtractedDataResponse extends ExtractedDataWithConfidence {
+  policy_no: FieldWithConfidence<string>;
+  insurance_provider: FieldWithConfidence<string>;
 }
 
 // ============================================================================

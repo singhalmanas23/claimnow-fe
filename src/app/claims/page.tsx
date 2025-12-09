@@ -10,8 +10,47 @@ import { format } from 'date-fns';
 export default function ClaimsPage() {
   const router = useRouter();
   const { data: currentUser, isLoading: userLoading } = useCurrentUser();
-  const { data: claims, isLoading: claimsLoading, error } = useClaims();
+  const { data: claimsData, isLoading: claimsLoading, error } = useClaims();
 
+  // Safely normalize claims data to always be an array
+  const claims = React.useMemo((): ClaimRecord[] => {
+    console.log('Raw claims data:', claimsData);
+    
+    if (!claimsData) return [];
+    
+    // If it's already an array, return it
+    if (Array.isArray(claimsData)) {
+      console.log('Claims is array:', claimsData.length);
+      return claimsData as ClaimRecord[];
+    }
+    
+    // Type guard for wrapped responses
+    const dataAsRecord = claimsData as Record<string, unknown>;
+    
+    // If it's an object with a claims property that's an array
+    if (dataAsRecord.claims && Array.isArray(dataAsRecord.claims)) {
+      console.log('Claims in .claims property:', dataAsRecord.claims.length);
+      return dataAsRecord.claims as ClaimRecord[];
+    }
+    
+    // If it's an object with items property (common API pattern)
+    if (dataAsRecord.items && Array.isArray(dataAsRecord.items)) {
+      console.log('Claims in .items property:', dataAsRecord.items.length);
+      return dataAsRecord.items as ClaimRecord[];
+    }
+    
+    // If it's an object with data property
+    if (dataAsRecord.data && Array.isArray(dataAsRecord.data)) {
+      console.log('Claims in .data property:', dataAsRecord.data.length);
+      return dataAsRecord.data as ClaimRecord[];
+    }
+    
+    // Otherwise return empty array
+    console.warn('Unexpected claims data format:', claimsData);
+    return [];
+  }, [claimsData]);
+
+  console.log('Normalized claims array:', claims, 'Is array?', Array.isArray(claims));
   // Helper function to safely extract value from confidence object or plain value
   const safeExtractValue = (field: unknown): string => {
     if (!field) return '';
@@ -20,7 +59,6 @@ export default function ClaimsPage() {
     }
     return String(field);
   };
-
   const formatDate = (dateString: string) => {
     try {
       return format(new Date(dateString), 'dd MMM yyyy');

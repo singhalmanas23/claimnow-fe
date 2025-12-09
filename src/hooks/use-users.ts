@@ -12,6 +12,9 @@ import type {
   UserUpdateAdmin,
   PaginationParams,
   Policy,
+  PolicyCreate,
+  PolicyUpdate,
+  PolicyPartialUpdate,
 } from '@/lib/api-types';
 import { handleApiError } from '@/lib/api-client';
 
@@ -57,7 +60,7 @@ export function useCreateUser() {
       // Invalidate users list after successful creation
       queryClient.invalidateQueries({ queryKey: usersKeys.lists() });
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       const apiError = handleApiError(error);
       console.error('User creation failed:', apiError.message);
     },
@@ -82,7 +85,7 @@ export function useUpdateUser() {
       // Invalidate users list after successful update
       queryClient.invalidateQueries({ queryKey: usersKeys.lists() });
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       const apiError = handleApiError(error);
       console.error('User update failed:', apiError.message);
     },
@@ -117,7 +120,26 @@ export function usePolicy(policyId: string | null) {
 }
 
 /**
- * Hook to update policy details (Admin only)
+ * Hook to create a new policy (Admin only)
+ */
+export function useCreatePolicy() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (policy: PolicyCreate) => usersService.createPolicy(policy),
+    onSuccess: () => {
+      // Invalidate policies list after successful creation
+      queryClient.invalidateQueries({ queryKey: policiesKeys.lists() });
+    },
+    onError: (error: unknown) => {
+      const apiError = handleApiError(error);
+      console.error('Policy creation failed:', apiError.message);
+    },
+  });
+}
+
+/**
+ * Hook to update entire policy - full update (Admin only)
  */
 export function useUpdatePolicy() {
   const queryClient = useQueryClient();
@@ -128,18 +150,68 @@ export function useUpdatePolicy() {
       policy,
     }: {
       policyId: string;
-      policy: Policy;
+      policy: PolicyUpdate;
     }) => usersService.updatePolicy(policyId, policy),
-    onSuccess: (_, variables) => {
+    onSuccess: (_data: Policy, variables: { policyId: string; policy: PolicyUpdate }) => {
       // Invalidate policies list and specific policy after successful update
       queryClient.invalidateQueries({ queryKey: policiesKeys.lists() });
       queryClient.invalidateQueries({ 
         queryKey: policiesKeys.detail(variables.policyId) 
       });
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       const apiError = handleApiError(error);
       console.error('Policy update failed:', apiError.message);
+    },
+  });
+}
+
+/**
+ * Hook to partially update policy - only specified fields (Admin only)
+ */
+export function usePartialUpdatePolicy() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      policyId,
+      updates,
+    }: {
+      policyId: string;
+      updates: PolicyPartialUpdate;
+    }) => usersService.partialUpdatePolicy(policyId, updates),
+    onSuccess: (_data: Policy, variables: { policyId: string; updates: PolicyPartialUpdate }) => {
+      // Invalidate policies list and specific policy after successful update
+      queryClient.invalidateQueries({ queryKey: policiesKeys.lists() });
+      queryClient.invalidateQueries({ 
+        queryKey: policiesKeys.detail(variables.policyId) 
+      });
+    },
+    onError: (error: unknown) => {
+      const apiError = handleApiError(error);
+      console.error('Policy partial update failed:', apiError.message);
+    },
+  });
+}
+
+/**
+ * Hook to delete a policy (Admin only)
+ */
+export function useDeletePolicy() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (policyId: string) => usersService.deletePolicy(policyId),
+    onSuccess: (_data: void, policyId: string) => {
+      // Invalidate policies list and remove specific policy from cache
+      queryClient.invalidateQueries({ queryKey: policiesKeys.lists() });
+      queryClient.removeQueries({ 
+        queryKey: policiesKeys.detail(policyId) 
+      });
+    },
+    onError: (error: unknown) => {
+      const apiError = handleApiError(error);
+      console.error('Policy deletion failed:', apiError.message);
     },
   });
 }

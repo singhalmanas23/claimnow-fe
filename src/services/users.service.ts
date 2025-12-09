@@ -10,6 +10,9 @@ import type {
   UserUpdateAdmin,
   PaginationParams,
   Policy,
+  PolicyCreate,
+  PolicyUpdate,
+  PolicyPartialUpdate,
 } from '@/lib/api-types';
 
 const API_PREFIX = '/api/v1/admin';
@@ -82,14 +85,46 @@ class UsersService {
   }
 
   /**
-   * Update policy details (Admin only)
+   * Create a new policy (Admin only)
    */
-  async updatePolicy(policyId: string, policy: Policy): Promise<Policy> {
+  async createPolicy(policy: PolicyCreate): Promise<Policy> {
+    const response = await apiClient.post<Policy>(
+      `${API_PREFIX}/policies`,
+      policy
+    );
+    return response.data;
+  }
+
+  /**
+   * Update entire policy - full update (Admin only)
+   */
+  async updatePolicy(policyId: string, policy: PolicyUpdate): Promise<Policy> {
     const response = await apiClient.put<Policy>(
       `${API_PREFIX}/policies/${policyId}`,
       policy
     );
     return response.data;
+  }
+
+  /**
+   * Partially update policy - only specified fields (Admin only)
+   */
+  async partialUpdatePolicy(
+    policyId: string,
+    updates: PolicyPartialUpdate
+  ): Promise<Policy> {
+    const response = await apiClient.patch<Policy>(
+      `${API_PREFIX}/policies/${policyId}`,
+      updates
+    );
+    return response.data;
+  }
+
+  /**
+   * Delete a policy (Admin only)
+   */
+  async deletePolicy(policyId: string): Promise<void> {
+    await apiClient.delete(`${API_PREFIX}/policies/${policyId}`);
   }
 }
 

@@ -5,10 +5,11 @@
 
 import { apiClient } from '@/lib/api-client';
 import type {
-  ExtractedDataWithConfidence,
+  ClaimIntakeResponse,
+  ClaimStatusResponse,
+  ExtractedDataResponse,
   AdjudicatedClaim,
-  ExtractedData,
-  InsuranceDetails,
+  AdjudicateClaimRequest,
   ClaimRecord,
   PaginationParams,
 } from '@/lib/api-types';
@@ -20,15 +21,16 @@ const API_PREFIX = '/api/v1/claims';
  */
 class ClaimsService {
   /**
-   * Extract data from uploaded medical bill PDF
+   * Upload PDF file for extraction (async workflow)
+   * Returns claim_id and status 'queued'
    * @param file - The PDF file to extract data from
-   * @returns Extracted data with confidence scores
+   * @returns Claim intake response with claim_id
    */
-  async extractClaim(file: File): Promise<ExtractedDataWithConfidence> {
+  async extractClaim(file: File): Promise<ClaimIntakeResponse> {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await apiClient.post<ExtractedDataWithConfidence>(
+    const response = await apiClient.post<ClaimIntakeResponse>(
       `${API_PREFIX}/extract`,
       formData,
       {
@@ -42,39 +44,60 @@ class ClaimsService {
   }
 
   /**
-   * Adjudicate a claim based on extracted data and insurance details
-   * @param extractedData - The extracted claim data
-   * @param insuranceDetails - Insurance policy information
-   * @returns Adjudicated claim with final amounts
+   * Poll claim status
+   * @param claimId - The claim ID to check status for
+   * @returns Current status of the claim
+   */
+  async getClaimStatus(claimId: string): Promise<ClaimStatusResponse> {
+    const response = await apiClient.get<ClaimStatusResponse>(
+      `${API_PREFIX}/status/${claimId}`
+    );
+    return response.data;
+  }
+
+  /**
+   * Get extracted data with confidence scores
+   * Only available after extraction is completed
+   * @param claimId - The claim ID
+   * @returns Extracted data with confidence scores
+   */
+  async getExtractedData(claimId: string): Promise<ExtractedDataResponse> {
+    const response = await apiClient.get<ExtractedDataResponse>(
+      `${API_PREFIX}/extracted/${claimId}`
+    );
+    return response.data;
+  }
+
+  /**
+   * Submit claim for adjudication (async workflow)
+   * @param request - Adjudication request with claim_id and extracted_data
+   * @returns Claim intake response with status 'adjudicating'
    */
   async adjudicateClaim(
-    extractedData: ExtractedData,
-    insuranceDetails: InsuranceDetails
-  ): Promise<AdjudicatedClaim> {
-    try {
-      console.log('ClaimsService: Sending adjudication request...');
-      console.log('ClaimsService: Extracted Data:', extractedData);
-      console.log('ClaimsService: Insurance Details:', insuranceDetails);
+    request: AdjudicateClaimRequest
+  ): Promise<ClaimIntakeResponse> {
+    const response = await apiClient.post<ClaimIntakeResponse>(
+      `${API_PREFIX}/adjudicate`,
+      request,
+      {
+        timeout: 180000,
+      }
+    );
 
-      const response = await apiClient.post<AdjudicatedClaim>(
-        `${API_PREFIX}/adjudicate`,
-        extractedData,
-        {
-          params: insuranceDetails,
-          timeout: 180000, // 3 minutes
-        }
-      );
+    return response.data;
+  }
 
-      console.log('ClaimsService: Adjudication response received:', response.data);
-      return response.data;
-    } catch (error: any)//eslint-disable-line @typescript-eslint/no-explicit-any
-     {
-      console.error('ClaimsService: Adjudication error:', error);
-      console.error('ClaimsService: Error response:', error.response);
-      console.error('ClaimsService: Error message:', error.message);
-      console.error('ClaimsService: Error config:', error.config);
-      throw error;
-    }
+  /**
+   * Get adjudicated results
+   * Only available after adjudication is completed
+   * @param claimId - The claim ID
+   * @returns Adjudicated claim with final amounts
+   */
+  async getAdjudicatedData(claimId: string): Promise<AdjudicatedClaim> {
+    const response = await apiClient.get<AdjudicatedClaim>(
+      `${API_PREFIX}/adjudicated/${claimId}`
+    );
+    return response.data;
   }
 
   /**
@@ -103,47 +126,7 @@ class ClaimsService {
     return response.data;
   }
 
-  /**
-   * Process complete claim workflow: extract + adjudicate
-   * @param file - The PDF file
-   * @param insuranceDetails - Insurance policy information
-   * @returns Complete adjudicated claim
-   */
-  async processCompleteClaim(
-    file: File,
-    insuranceDetails: InsuranceDetails
-  ): Promise<{
-    extracted: ExtractedDataWithConfidence;
-    adjudicated: AdjudicatedClaim;
-  }> {
-    // Step 1: Extract data from PDF
-    const extracted = await this.extractClaim(file);
 
-    // Step 2: Convert extracted data with confidence to plain extracted data
-    const extractedData: ExtractedData = {
-      hospital_name: extracted.hospital_name.value,
-      patient_name: extracted.patient_name.value,
-      bill_no: extracted.bill_no.value,
-      bill_date: extracted.bill_date.value,
-      admission_date: extracted.admission_date.value,
-      discharge_date: extracted.discharge_date.value,
-      net_payable_amount: extracted.net_payable_amount.value,
-      line_items: extracted.line_items.map((item) => ({
-        description: item.description.value,
-        quantity: item.quantity.value,
-        unit_price: item.unit_price.value,
-        total_amount: item.total_amount.value,
-      })),
-    };
-
-    // Step 3: Adjudicate the claim
-    const adjudicated = await this.adjudicateClaim(extractedData, insuranceDetails);
-
-    return {
-      extracted,
-      adjudicated,
-    };
-  }
 }
 
 // Export singleton instance

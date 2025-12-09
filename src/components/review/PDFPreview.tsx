@@ -57,7 +57,6 @@ export default function PDFPreview({
         const storedPdfData = await pdfStorage.getPDF(currentPdfId);
         
         if (storedPdfData && storedPdfData.file) {
-          const fileSizeMB = (storedPdfData.file.size / 1024 / 1024).toFixed(2);
           const blobUrl = URL.createObjectURL(storedPdfData.file);
           blobUrlRef.current = blobUrl;
           
@@ -154,12 +153,12 @@ export default function PDFPreview({
   };
 
   return (
-    <div className="w-[650px] p-8 bg-gray-50">
-      <h1 className="text-[28px] font-semibold text-black mb-4">
+    <div className="w-full lg:w-[650px] xl:w-[700px] flex-shrink-0 p-6 lg:p-8 bg-gray-50 border-r border-gray-200 overflow-y-auto">
+      <h1 className="text-2xl lg:text-[28px] font-semibold text-black mb-3 lg:mb-4">
         Verify Data & Enter Policy Details
       </h1>
       <div 
-        className="text-xl font-semibold text-[rgba(29,36,51,0.8)] mb-3"
+        className="text-lg lg:text-xl font-semibold text-[rgba(29,36,51,0.8)] mb-3"
         title={fileName} // Show full name on hover
       >
         {truncateFileName(fileName, 55)}
@@ -221,7 +220,7 @@ export default function PDFPreview({
       )}
       
       {/* PDF Preview Container */}
-      <div className="w-full h-[calc(100vh-280px)] min-h-[850px] bg-white rounded-lg shadow-lg relative overflow-hidden border border-gray-200">
+      <div className="w-full h-[calc(100vh-240px)] lg:h-[calc(100vh-280px)] min-h-[600px] lg:min-h-[850px] bg-white rounded-lg shadow-lg relative overflow-hidden border border-gray-200">
         {pdfData && !showFallback ? (
           /* Real PDF Preview using iframe with zoom */
           <div className="w-full h-full overflow-auto bg-gray-100 flex items-start justify-center p-4">

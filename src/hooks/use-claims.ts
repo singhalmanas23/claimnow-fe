@@ -8,8 +8,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { claimsService } from '@/services/claims.service';
 import type {
-  ExtractedData,
-  InsuranceDetails,
+  AdjudicateClaimRequest,
   PaginationParams,
 } from '@/lib/api-types';
 import { handleApiError } from '@/lib/api-client';
@@ -23,9 +22,6 @@ export const claimsKeys = {
   detail: (id: string) => [...claimsKeys.details(), id] as const,
 };
 
-/**
- * Hook to get all claims for the current user
- */
 export function useClaims(params?: PaginationParams) {
   return useQuery({
     queryKey: claimsKeys.list(params),
@@ -47,66 +43,78 @@ export function useClaim(claimId: string | null) {
 }
 
 /**
- * Hook to extract data from uploaded PDF
+ * Hook to upload PDF for extraction (async workflow)
+ * Returns claim_id which should be used for polling
  */
 export function useExtractClaim() {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: (file: File) => claimsService.extractClaim(file),
-    onError: (error) => {
+    onError: (error: unknown) => {
       const apiError = handleApiError(error);
-      console.error('Extraction failed:', apiError.message);
+      console.error('Extraction upload failed:', apiError.message);
     },
   });
 }
 
 /**
- * Hook to adjudicate a claim
+ * Hook to poll claim status
+ * Use with refetchInterval for automatic polling
+ */
+export function useClaimStatus(claimId: string | null, enabled = true) {
+  return useQuery({
+    queryKey: [...claimsKeys.all, 'status', claimId],
+    queryFn: () => claimsService.getClaimStatus(claimId!),
+    enabled: !!claimId && enabled,
+    refetchInterval: (query) => {
+      // Stop polling if disabled or if status is completed/failed
+      if (!enabled) return false;
+      const data = query.state.data as { status?: string } | undefined;
+      if (data?.status === 'completed' || data?.status === 'failed') {
+        return false;
+      }
+      return 2000; // Poll every 2 seconds
+    },
+    staleTime: 0, // Always fetch fresh data
+  });
+}
+
+/**
+ * Hook to get extracted data with confidence scores
+ * Should be called after status is 'completed'
+ */
+export function useExtractedData(claimId: string | null, enabled = true) {
+  return useQuery({
+    queryKey: [...claimsKeys.all, 'extracted', claimId],
+    queryFn: () => claimsService.getExtractedData(claimId!),
+    enabled: !!claimId && enabled,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+/**
+ * Hook to submit claim for adjudication (async workflow)
  */
 export function useAdjudicateClaim() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
-      extractedData,
-      insuranceDetails,
-    }: {
-      extractedData: ExtractedData;
-      insuranceDetails: InsuranceDetails;
-    }) => claimsService.adjudicateClaim(extractedData, insuranceDetails),
+    mutationFn: (request: AdjudicateClaimRequest) =>
+      claimsService.adjudicateClaim(request),
     onSuccess: () => {
-      // Invalidate claims list after successful adjudication
       queryClient.invalidateQueries({ queryKey: claimsKeys.lists() });
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       const apiError = handleApiError(error);
-      console.error('Adjudication failed:', apiError.message);
+      console.error('Adjudication submission failed:', apiError.message);
     },
   });
 }
 
-/**
- * Hook to process complete claim workflow (extract + adjudicate)
- */
-export function useProcessCompleteClaim() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({
-      file,
-      insuranceDetails,
-    }: {
-      file: File;
-      insuranceDetails: InsuranceDetails;
-    }) => claimsService.processCompleteClaim(file, insuranceDetails),
-    onSuccess: () => {
-      // Invalidate claims list after successful processing
-      queryClient.invalidateQueries({ queryKey: claimsKeys.lists() });
-    },
-    onError: (error) => {
-      const apiError = handleApiError(error);
-      console.error('Claim processing failed:', apiError.message);
-    },
+export function useAdjudicatedData(claimId: string | null, enabled = true) {
+  return useQuery({
+    queryKey: [...claimsKeys.all, 'adjudicated', claimId],
+    queryFn: () => claimsService.getAdjudicatedData(claimId!),
+    enabled: !!claimId && enabled,
+    staleTime: 5 * 60 * 1000,
   });
 }

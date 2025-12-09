@@ -9,12 +9,11 @@ import PDFPreview from "@/components/review/PDFPreview";
 import PolicyForm from "@/components/review/PolicyForm";
 import ItemizedCharges from "@/components/review/ItemizedCharges";
 import BottomNavigation from "@/components/review/BottomNavigation";
-import { useAdjudicateClaim } from "@/hooks/use-claims";
+import { useAdjudicateClaim, useClaimStatus, useAdjudicatedData } from "@/hooks/use-claims";
 import { useCurrentUser } from "@/hooks/use-auth";
 import type {
   ExtractedDataWithConfidence,
   ExtractedData,
-  AdjudicatedClaim,
 } from "@/lib/api-types";
 
 interface FieldConfidence {
@@ -131,12 +130,47 @@ interface FieldConfidence {
 
 const USE_TEST_DATA = false;
 
+/**
+ * Convert various date formats to ISO 8601 (YYYY-MM-DD)
+ * Handles: DD/MM/YYYY, DD-MM-YYYY, YYYY-MM-DD
+ */
+function convertToISODate(dateStr: string | Date | null | undefined): string {
+  if (!dateStr) return new Date().toISOString().split('T')[0];
+  
+  // If already a Date object
+  if (dateStr instanceof Date) {
+    return dateStr.toISOString().split('T')[0];
+  }
+  
+  const str = dateStr.trim();
+  
+  // If already in ISO format (YYYY-MM-DD)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+    return str;
+  }
+  
+  // Handle DD/MM/YYYY or DD-MM-YYYY
+  const ddmmyyyyMatch = str.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+  if (ddmmyyyyMatch) {
+    const [, day, month, year] = ddmmyyyyMatch;
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  }
+  
+  // Try parsing as a date
+  const date = new Date(str);
+  if (!isNaN(date.getTime())) {
+    return date.toISOString().split('T')[0];
+  }
+  
+  // Fallback to current date
+  console.warn('Could not parse date:', dateStr, '- using current date');
+  return new Date().toISOString().split('T')[0];
+}
+
 export default function ReviewPage() {
   const router = useRouter();
   const adjudicateClaimMutation = useAdjudicateClaim();
   const { data: currentUser, isLoading: userLoading } = useCurrentUser();
-  const [extractedData, setExtractedData] =
-    useState<ExtractedDataWithConfidence | null>(null);
   const [error, setError] = useState<string>("");
   const [uploadedFileName, setUploadedFileName] =
     useState<string>("Bill11.pdf");
@@ -146,6 +180,20 @@ export default function ReviewPage() {
   >([]);
   const [criticalIssues, setCriticalIssues] = useState(0);
   const [warningIssues, setWarningIssues] = useState(0);
+  
+  // State for adjudication polling
+  const [claimId, setClaimId] = useState<string | null>(null);
+  const [isAdjudicating, setIsAdjudicating] = useState(false);
+  
+  // Poll adjudication status
+  const { data: adjudicationStatus } = useClaimStatus(claimId, isAdjudicating);
+  
+  // Fetch adjudicated data when adjudication completes
+  // Status can be either 'completed' (after adjudication) or 'extracted' (after extraction)
+  const shouldFetchAdjudicated = 
+    (adjudicationStatus?.status === 'completed' || adjudicationStatus?.status === 'extracted') 
+    && isAdjudicating;
+  const { data: adjudicatedData } = useAdjudicatedData(claimId, shouldFetchAdjudicated);
 
   const {
     policyInfo,
@@ -160,21 +208,51 @@ export default function ReviewPage() {
     setIsSubmitting,
     setItemizedCharges,
   } = useReviewState();
+  useEffect(() => {
+    if (adjudicationStatus && isAdjudicating) {
+      console.log('Review: Adjudication status update:', adjudicationStatus.status);
+      
+      if (adjudicationStatus.status === 'completed' || adjudicationStatus.status === 'extracted') {
+        // Adjudication completed
+        setIsAdjudicating(false);
+        console.log('Review: ✓ Adjudication completed with status:', adjudicationStatus.status, '- stopping poll');
+      } else if (adjudicationStatus.status === 'failed') {
+        // Adjudication failed
+        setIsAdjudicating(false);
+        setError(adjudicationStatus.last_error || 'Adjudication failed. Please try again.');
+        setIsSubmitting(false);
+      }
+    }
+  }, [adjudicationStatus, isAdjudicating, setIsSubmitting]);
 
-  // Load extracted data from sessionStorage on component mount
+  // Handle adjudicated data received
+  useEffect(() => {
+    if (adjudicatedData) {
+      console.log('Review: Adjudicated data received:', adjudicatedData);
+      
+      // Store adjudicated result in sessionStorage
+      sessionStorage.setItem("adjudicatedClaimData", JSON.stringify(adjudicatedData));
+      
+      // Navigate to processed page
+      router.push("/processed");
+    }
+  }, [adjudicatedData, router]);
+
   useEffect(() => {
     let parsed: ExtractedDataWithConfidence | null = null;
-
-    // TESTING: Use static test data or real data
     if (USE_TEST_DATA) {
-      //console.log("Review: Using TEST DATA");
-      // parsed = TEST_DATA;
       setUploadedFileName("Test_Bill.pdf");
     } else {
       const storedData = sessionStorage.getItem("extractedClaimData");
       const storedFileName = sessionStorage.getItem("uploadedFileName");
+      const storedClaimId = sessionStorage.getItem("currentClaimId");
 
       console.log("Review: Loading data from sessionStorage");
+
+      if (storedClaimId) {
+        setClaimId(storedClaimId);
+        console.log("Review: Claim ID set to:", storedClaimId);
+      }
 
       if (storedFileName) {
         setUploadedFileName(storedFileName);
@@ -199,9 +277,6 @@ export default function ReviewPage() {
 
     if (!parsed) return;
 
-    setExtractedData(parsed);
-
-    // Track field confidences
     const confidences: FieldConfidence = {
       hospitalName: parsed.hospital_name.confidence,
       patientName: parsed.patient_name.confidence,
@@ -302,11 +377,35 @@ export default function ReviewPage() {
         return;
       }
 
+      // Check if we have a claim_id
+      if (!claimId) {
+        setError("No claim ID found. Please upload a document first.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Convert dates to ISO format (YYYY-MM-DD) as required by backend
+      const isoAdmissionDate = convertToISODate(policyInfo.admissionDate);
+      const isoDischargeDate = policyInfo.dischargeDate 
+        ? convertToISODate(policyInfo.dischargeDate) 
+        : null;
+      const isoBillDate = policyInfo.billDate 
+        ? convertToISODate(policyInfo.billDate) 
+        : convertToISODate(new Date());
+
+      console.log("Review: Date conversions:", {
+        admission: { original: policyInfo.admissionDate, iso: isoAdmissionDate },
+        discharge: { original: policyInfo.dischargeDate, iso: isoDischargeDate },
+        bill: { original: policyInfo.billDate, iso: isoBillDate }
+      });
+
       const extractedDataPayload: ExtractedData = {
+        bill_date: new Date(isoBillDate),
+        bill_no: policyInfo.billNo || "",
         hospital_name: policyInfo.hospitalName,
         patient_name: policyInfo.patientName,
-        admission_date: policyInfo.admissionDate,
-        discharge_date: policyInfo.dischargeDate || null,
+        admission_date: isoAdmissionDate,
+        discharge_date: isoDischargeDate,
         net_payable_amount: itemizedCharges.reduce(
           (sum, item) => sum + item.quantity * item.unitPrice,
           0
@@ -317,24 +416,30 @@ export default function ReviewPage() {
           unit_price: item.unitPrice,
           total_amount: item.quantity * item.unitPrice,
         })),
+        policy_no: policyInfo.policyNumber,
+        insurance_provider: policyInfo.insuranceProvider,
       };
 
-      const result: AdjudicatedClaim =
-        await adjudicateClaimMutation.mutateAsync({
-          extractedData: extractedDataPayload,
-          insuranceDetails: {
-            policy_number: policyInfo.policyNumber,
-            insurance_provider: policyInfo.insuranceProvider,
-          },
-        });
+      console.log("Review: Submitting adjudication for claim:", claimId);
+      console.log("Review: Policy Number:", policyInfo.policyNumber);
+      console.log("Review: Insurance Provider:", policyInfo.insuranceProvider);
 
-      console.log("Review: Adjudication successful:", result);
+      // Submit for adjudication (async - returns claim_id with status 'adjudicating')
+      const result = await adjudicateClaimMutation.mutateAsync({
+        claim_id: claimId,
+        extracted_data: extractedDataPayload,
+      });
 
-      // Store adjudicated result in sessionStorage
-      sessionStorage.setItem("adjudicatedClaimData", JSON.stringify(result));
+      console.log("Review: Adjudication submitted:", result);
 
-      // Navigate to processed page
-      router.push("/processed");
+      // Start polling for adjudication status
+      setIsAdjudicating(true);
+      
+      // Note: The useEffect hooks above will handle:
+      // 1. Polling status until completed
+      // 2. Fetching adjudicated data
+      // 3. Storing in sessionStorage
+      // 4. Navigating to /processed
     } catch (err: unknown) {
       const error = err as { 
         response?: { data?: { detail?: string } };
@@ -367,7 +472,7 @@ export default function ReviewPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white flex flex-col">
       <ReviewHeader
         steps={PROGRESS_STEPS}
         userName={currentUser?.full_name || currentUser?.username || "User"}
@@ -377,7 +482,7 @@ export default function ReviewPage() {
 
       {/* Confidence Alert Banner */}
       {(criticalIssues > 0 || warningIssues > 0) && (
-        <div className="mx-16 mt-4 space-y-3">
+        <div className="mx-8 lg:mx-16 mt-4 space-y-3">
           {/* Critical Issues Alert */}
           {criticalIssues > 0 && (
             <div className="p-4 bg-red-50 border-l-4 border-red-500 rounded-lg shadow-sm">
@@ -482,7 +587,7 @@ export default function ReviewPage() {
 
       {/* Error Message */}
       {error && (
-        <div className="mx-16 mt-4 p-4 bg-red-50 border border-red-200 rounded-lg shadow-sm">
+        <div className="mx-8 lg:mx-16 mt-4 p-4 bg-red-50 border border-red-200 rounded-lg shadow-sm">
           <div className="flex items-start gap-3">
             <svg
               width="20"
@@ -505,14 +610,14 @@ export default function ReviewPage() {
         </div>
       )}
 
-      <div className="flex">
+      <div className="flex flex-1 bg-white overflow-hidden">
         <PDFPreview
           fileName={uploadedFileName}
           policyInfo={policyInfo}
           itemizedCharges={itemizedCharges}
         />
 
-        <div className="flex-1 p-16">
+        <div className="flex-1 bg-white p-8 lg:p-16 overflow-y-auto">
           <PolicyForm
             policyInfo={policyInfo}
             onFieldChange={handlePolicyFieldChange}
