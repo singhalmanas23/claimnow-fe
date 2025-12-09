@@ -3,11 +3,13 @@ import { Plus, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { useUsers } from '@/hooks';
-import { UsersTable } from './UsersTable';
 import { CreateUserDialog } from './CreateUserDialog';
+import { UsersTable } from './UsersTable';
 
 export function UsersManagement() {
   const { data: users, isLoading, refetch } = useUsers();
+  console.log('Users data:', users);
+
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   return (

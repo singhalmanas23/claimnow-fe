@@ -222,6 +222,7 @@ export interface PaginationParams {
   limit?: number;
 }
 
+
 export interface ClaimsListResponse {
   claims: ClaimRecord[];
   total?: number;

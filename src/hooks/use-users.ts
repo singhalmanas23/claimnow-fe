@@ -44,7 +44,7 @@ export function useUsers(params?: PaginationParams) {
   return useQuery({
     queryKey: usersKeys.list(params),
     queryFn: () => usersService.getUsers(params),
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 2 * 60 * 1000,
   });
 }
 

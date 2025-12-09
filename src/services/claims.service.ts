@@ -15,6 +15,7 @@ import type {
 } from '@/lib/api-types';
 
 const API_PREFIX = '/api/v1/claims';
+const ADMIN_API_CLAIM='/api/v1/admin/claims';
 
 /**
  * Claims Service Class
@@ -106,7 +107,7 @@ class ClaimsService {
    * @returns List of user's claims
    */
   async getClaims(params?: PaginationParams): Promise<ClaimRecord[]> {
-    const response = await apiClient.get<ClaimRecord[]>(API_PREFIX, {
+    const response = await apiClient.get<ClaimRecord[]>(ADMIN_API_CLAIM, {
       params: {
         skip: params?.skip || 0,
         limit: params?.limit || 100,

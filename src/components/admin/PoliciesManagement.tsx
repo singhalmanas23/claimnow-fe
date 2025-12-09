@@ -2,13 +2,15 @@ import React, { useState } from 'react';
 import { Plus, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
-import { usePolicies } from '@/hooks';
+import { PolicyDetailsDialog } from './PolicyDetailsDialog';
 import { PoliciesTable } from './PoliciesTable';
 import { CreatePolicyDialog } from './CreatePolicyDialog';
-import { PolicyDetailsDialog } from './PolicyDetailsDialog';
+import { usePolicies } from '@/hooks';
+
 
 export function PoliciesManagement() {
   const { data: policies, isLoading, refetch } = usePolicies();
+  console.log('manas',policies);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedPolicyId, setSelectedPolicyId] = useState<string | null>(null);
 

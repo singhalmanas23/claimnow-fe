@@ -4,8 +4,10 @@ import { Button } from '@/components/ui/Button';
 import { useClaims } from '@/hooks';
 import { ClaimsTable } from './ClaimsTable';
 
+
 export function ClaimsMonitoring() {
   const { data: claims, isLoading, refetch } = useClaims();
+  console.log('claim',claims);
 
   return (
     <div className="space-y-4">

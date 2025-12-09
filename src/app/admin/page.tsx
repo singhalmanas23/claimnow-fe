@@ -15,7 +15,7 @@ import {
 
 export default function AdminDashboard() {
   const { data: currentUser } = useCurrentUser();
-  const isAdmin = true; // TODO: Replace with actual admin check
+  const isAdmin = true; 
 
   if (!isAdmin) {
     return (
