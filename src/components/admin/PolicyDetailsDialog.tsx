@@ -287,20 +287,11 @@ export function PolicyDetailsDialog({ policyId, open, onClose }: PolicyDetailsDi
               <div className="flex gap-2">
                 <Button
                   size="sm"
-                  variant="outline"
-                  onClick={() => setEditMode('partial')}
-                  className="border-gray-300 text-gray-700 hover:bg-gray-50"
-                >
-                  <Edit className="h-3 w-3 mr-1" />
-                  Quick Edit
-                </Button>
-                <Button
-                  size="sm"
                   onClick={() => setEditMode('full')}
                   className="bg-blue-600 hover:bg-blue-700"
                 >
                   <Edit className="h-3 w-3 mr-1" />
-                  Full Edit
+                  Edit
                 </Button>
               </div>
             )}
