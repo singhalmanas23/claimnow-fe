@@ -83,7 +83,7 @@ export function ClaimsTable({ claims }: ClaimsTableProps) {
                 {formatCurrency(claim.total_claimed_amount)}
               </TableCell>
               <TableCell>
-                <ClaimStatusBadge status={claim.status} />
+                <ClaimStatusBadge status={claim.status} lastError={claim.last_error} />
               </TableCell>
               <TableCell className="text-gray-600 text-sm">
                 {formatDate(claim.updated_at)}
