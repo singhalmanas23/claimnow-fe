@@ -635,8 +635,42 @@ export default function ReviewPage() {
         </div>
       </div>
 
+      {/* Processing Overlay */}
+      {(isSubmitting || 
+        isAdjudicating || 
+        adjudicationStatus?.status === 'adjudicating' || 
+        adjudicationStatus?.status === 'processing' ||
+        adjudicationStatus?.status === 'queued') && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg shadow-xl p-8 max-w-md mx-4">
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+              <div className="text-center">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Processing Claim
+                </h3>
+                <p className="text-sm text-gray-600">
+                  {adjudicationStatus?.status === 'adjudicating' 
+                    ? 'Adjudicating your claim...' 
+                    : adjudicationStatus?.status === 'processing'
+                    ? 'Processing your claim...'
+                    : adjudicationStatus?.status === 'queued'
+                    ? 'Your claim is queued for processing...'
+                    : 'Please wait while we process your claim...'}
+                </p>
+                {adjudicationStatus?.status && (
+                  <p className="text-xs text-gray-500 mt-2 capitalize">
+                    Status: {adjudicationStatus.status}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <BottomNavigation
-        isSubmitting={isSubmitting}
+        isSubmitting={isSubmitting || isAdjudicating}
         onReset={handleReset}
         onProcess={handleProcessNow}
       />
