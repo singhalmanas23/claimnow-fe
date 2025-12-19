@@ -188,11 +188,10 @@ export default function ReviewPage() {
   // Poll adjudication status
   const { data: adjudicationStatus } = useClaimStatus(claimId, isAdjudicating);
   
-  // Fetch adjudicated data when adjudication completes
-  // Status can be either 'completed' (after adjudication) or 'extracted' (after extraction)
+  // Fetch adjudicated data only when adjudication is completed
+  // Note: 'extracted' means PDF extraction is done, NOT adjudication
   const shouldFetchAdjudicated = 
-    (adjudicationStatus?.status === 'completed' || adjudicationStatus?.status === 'extracted') 
-    && isAdjudicating;
+    adjudicationStatus?.status === 'completed' && isAdjudicating;
   const { data: adjudicatedData } = useAdjudicatedData(claimId, shouldFetchAdjudicated);
 
   const {
@@ -212,16 +211,17 @@ export default function ReviewPage() {
     if (adjudicationStatus && isAdjudicating) {
       console.log('Review: Adjudication status update:', adjudicationStatus.status);
       
-      if (adjudicationStatus.status === 'completed' || adjudicationStatus.status === 'extracted') {
-        // Adjudication completed
+      if (adjudicationStatus.status === 'completed') {
+        // Adjudication completed - safe to fetch adjudicated data
         setIsAdjudicating(false);
-        console.log('Review: ✓ Adjudication completed with status:', adjudicationStatus.status, '- stopping poll');
+        console.log('Review: ✓ Adjudication completed - stopping poll');
       } else if (adjudicationStatus.status === 'failed') {
         // Adjudication failed
         setIsAdjudicating(false);
         setError(adjudicationStatus.last_error || 'Adjudication failed. Please try again.');
         setIsSubmitting(false);
       }
+      // Note: 'adjudicating' status means still processing - continue polling
     }
   }, [adjudicationStatus, isAdjudicating, setIsSubmitting]);
 
