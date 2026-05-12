@@ -10,3 +10,5 @@ export { PolicyDetailsDialog } from './PolicyDetailsDialog';
 export { ClaimsMonitoring } from './ClaimsMonitoring';
 export { ClaimsTable } from './ClaimsTable';
 export { ClaimStatusBadge } from './ClaimStatusBadge';
+export { CompaniesManagement } from './CompaniesManagement';
+export { WebhookFailures } from './WebhookFailures';

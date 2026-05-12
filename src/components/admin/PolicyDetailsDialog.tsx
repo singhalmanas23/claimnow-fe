@@ -515,7 +515,7 @@ export function PolicyDetailsDialog({ policyId, open, onClose }: PolicyDetailsDi
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                              <div className="space-y-2">
+                              {/* <div className="space-y-2">
                                 <Label htmlFor={`value-${limit.id}`} className="text-gray-700">
                                   Value (₹)
                                 </Label>
@@ -568,7 +568,7 @@ export function PolicyDetailsDialog({ policyId, open, onClose }: PolicyDetailsDi
                                   placeholder="e.g., day"
                                   className="border-gray-300"
                                 />
-                              </div>
+                              </div> */}
                             </div>
 
                             <div className="space-y-2">
