@@ -70,6 +70,7 @@ export interface ExtractedData {
   net_payable_amount: number;
   policy_no?: string;
   insurance_provider?: string;
+  icd_code?: string;
 }
 
 export interface AdjudicatedLineItem extends LineItem {
@@ -123,6 +124,9 @@ export interface ExtractedDataWithConfidence {
   admission_date: FieldWithConfidence<string>;
   discharge_date: FieldWithConfidence<string | null>;
   net_payable_amount: FieldWithConfidence<number>;
+  policy_no?: FieldWithConfidence<string | null>;
+  insurance_provider?: FieldWithConfidence<string | null>;
+  icd_code?: FieldWithConfidence<string | null>;
   line_items: LineItemWithConfidence[];
 }
 
