@@ -154,6 +154,20 @@ class ClaimsService {
   }
 
   /**
+   * Download a batch's adjudicated results as a one-row-per-claim report.
+   * @param batchId - The batch ID
+   * @param format - 'csv' or 'xlsx' (real Excel workbook)
+   * @returns Blob containing the report bytes
+   */
+  async getBatchResults(batchId: string, format: 'csv' | 'xlsx'): Promise<Blob> {
+    const response = await apiClient.get<Blob>(
+      `${API_PREFIX}/batches/${batchId}/results.${format}`,
+      { responseType: 'blob' }
+    );
+    return response.data;
+  }
+
+  /**
    * Submit claim for adjudication (async workflow)
    * @param request - Adjudication request with claim_id and extracted_data
    * @returns Claim intake response with status 'adjudicating'

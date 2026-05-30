@@ -90,6 +90,9 @@ export default function BatchTrackerPage() {
               )}
             </p>
           )}
+          {data && batchId && (
+            <BatchDownloadButtons batchId={batchId} inFlight={data.counts.in_flight} />
+          )}
         </div>
 
         {isLoading && (
@@ -195,6 +198,64 @@ export default function BatchTrackerPage() {
           </>
         )}
       </main>
+    </div>
+  );
+}
+
+
+function BatchDownloadButtons({ batchId, inFlight }: { batchId: string; inFlight: number }) {
+  const [busy, setBusy] = useState<"csv" | "xlsx" | null>(null);
+  const [error, setError] = useState<string>("");
+
+  const download = async (format: "csv" | "xlsx") => {
+    setError("");
+    setBusy(format);
+    try {
+      const blob = await claimsService.getBatchResults(batchId, format);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `batch-${batchId}.${format}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (e: unknown) {
+      const msg =
+        e && typeof e === "object" && "response" in e
+          ? (e as { response?: { data?: { detail?: string } } }).response?.data?.detail || "download failed"
+          : "download failed";
+      setError(msg);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const baseBtn =
+    "inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 font-satoshi text-[13px] font-medium transition disabled:opacity-50";
+
+  return (
+    <div className="mt-4 flex flex-wrap items-center gap-2">
+      <button
+        onClick={() => download("csv")}
+        disabled={busy !== null}
+        className={`${baseBtn} border-[#D8DDE7] bg-white text-[#1D2433] hover:bg-[#F7F8FA]`}
+      >
+        {busy === "csv" ? "Preparing…" : "↓ Download CSV"}
+      </button>
+      <button
+        onClick={() => download("xlsx")}
+        disabled={busy !== null}
+        className={`${baseBtn} border-green-200 bg-green-50 text-green-800 hover:bg-green-100`}
+      >
+        {busy === "xlsx" ? "Preparing…" : "↓ Download Excel"}
+      </button>
+      {inFlight > 0 && (
+        <span className="text-[12px] text-[rgba(29,36,51,0.55)]">
+          {inFlight} still processing — export reflects current results
+        </span>
+      )}
+      {error && <span className="text-[12px] text-red-600">{error}</span>}
     </div>
   );
 }
