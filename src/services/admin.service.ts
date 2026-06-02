@@ -80,6 +80,35 @@ class AdminService {
     );
     return r.data;
   }
+
+  async getCompanyAnalytics(window: AnalyticsWindow = 'all'): Promise<CompanyAnalyticsResponse> {
+    const r = await apiClient.get<CompanyAnalyticsResponse>(
+      `${ADMIN_PREFIX}/analytics/companies`,
+      { params: { window } }
+    );
+    return r.data;
+  }
+}
+
+export type AnalyticsWindow = 'today' | 'week' | 'all';
+
+export interface CompanyAnalyticsRow {
+  company_id: number;
+  name: string;
+  status: string;
+  total: number;
+  completed: number;
+  needs_review: number;
+  failed: number;
+  in_flight: number;
+  auto_rate_percent?: number | null;
+}
+
+export interface CompanyAnalyticsResponse {
+  window: string;
+  since?: string | null;
+  companies: CompanyAnalyticsRow[];
+  totals: CompanyAnalyticsRow;
 }
 
 export interface WebhookFailure {

@@ -13,6 +13,7 @@ import {
   ClaimsMonitoring,
   CompaniesManagement,
   WebhookFailures,
+  CompanyAnalytics,
 } from '@/components/admin';
 
 export default function AdminDashboard() {
@@ -66,7 +67,14 @@ export default function AdminDashboard() {
         <Card className="border border-gray-200 shadow-lg">
           <CardContent className="p-4 md:p-6">
             <Tabs defaultValue="companies" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-5 lg:w-auto bg-gray-100 p-1">
+              <TabsList className="grid w-full grid-cols-6 lg:w-auto bg-gray-100 p-1">
+                <TabsTrigger
+                  value="analytics"
+                  className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm text-gray-600"
+                >
+                  <BarChart3 className="h-4 w-4" />
+                  <span className="hidden sm:inline">Analytics</span>
+                </TabsTrigger>
                 <TabsTrigger
                   value="companies"
                   className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm text-gray-600"
@@ -103,6 +111,10 @@ export default function AdminDashboard() {
                   <span className="hidden sm:inline">Claims</span>
                 </TabsTrigger>
               </TabsList>
+
+              <TabsContent value="analytics" className="space-y-4">
+                <CompanyAnalytics />
+              </TabsContent>
 
               <TabsContent value="companies" className="space-y-4">
                 <CompaniesManagement />
