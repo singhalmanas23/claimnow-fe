@@ -19,6 +19,15 @@ export default function ProcessedPage() {
   const [loading, setLoading] = useState(true);
   const [isHistoricalView, setIsHistoricalView] = useState(false);
   const [claimNumber, setClaimNumber] = useState<string>("");
+  const [currentBatchId, setCurrentBatchId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setCurrentBatchId(sessionStorage.getItem("currentBatchId"));
+  }, []);
+
+  const handleBackToBatch = () => {
+    if (currentBatchId) router.push(`/batches/${currentBatchId}`);
+  };
 
   useEffect(() => {
     // Check if this is a historical view (from claims history page)
@@ -311,6 +320,19 @@ export default function ProcessedPage() {
       />
 
       <div className="px-16 py-8">
+        {/* Back to batch — when user came from a batch tracker */}
+        {!isHistoricalView && currentBatchId && (
+          <div className="flex items-center gap-3 mb-6">
+            <button
+              onClick={handleBackToBatch}
+              className="flex items-center gap-2 text-[rgba(29,36,51,0.8)] hover:text-[#1D2433] transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              <span className="text-sm font-medium">Back to batch</span>
+            </button>
+          </div>
+        )}
+
         {/* Progress Stepper - Only show for newly processed claims */}
         {!isHistoricalView && (
           <div className="flex justify-center mb-8">

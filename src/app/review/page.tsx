@@ -280,8 +280,13 @@ export default function ReviewPage() {
     const confidences: FieldConfidence = {
       hospitalName: parsed.hospital_name.confidence,
       patientName: parsed.patient_name.confidence,
+      billNo: parsed.bill_no?.confidence ?? 1,
+      billDate: parsed.bill_date?.confidence ?? 1,
       admissionDate: parsed.admission_date.confidence,
-      dischargeDate: parsed.discharge_date?.confidence || 1,
+      dischargeDate: parsed.discharge_date?.confidence ?? 1,
+      policyNumber: parsed.policy_no?.confidence ?? 1,
+      insuranceProvider: parsed.insurance_provider?.confidence ?? 1,
+      icdCode: parsed.icd_code?.confidence ?? 1,
       netPayableAmount: parsed.net_payable_amount.confidence,
     };
 
@@ -317,13 +322,17 @@ export default function ReviewPage() {
     setCriticalIssues(critical);
     setWarningIssues(warnings);
 
-    // Pre-fill form with extracted data
-    handlePolicyFieldChange("hospitalName", parsed.hospital_name.value);
-    handlePolicyFieldChange("patientName", parsed.patient_name.value);
-    handlePolicyFieldChange("admissionDate", parsed.admission_date.value);
-    if (parsed.discharge_date?.value) {
-      handlePolicyFieldChange("dischargeDate", parsed.discharge_date.value);
-    }
+    // Pre-fill form with extracted data. Empty fields (AI couldn't find on
+    // the bill) stay as empty strings — the reviewer fills them in.
+    handlePolicyFieldChange("hospitalName", parsed.hospital_name?.value ?? "");
+    handlePolicyFieldChange("patientName", parsed.patient_name?.value ?? "");
+    handlePolicyFieldChange("billNo", parsed.bill_no?.value ?? "");
+    handlePolicyFieldChange("billDate", parsed.bill_date?.value ?? "");
+    handlePolicyFieldChange("admissionDate", parsed.admission_date?.value ?? "");
+    handlePolicyFieldChange("dischargeDate", parsed.discharge_date?.value ?? "");
+    handlePolicyFieldChange("policyNumber", parsed.policy_no?.value ?? "");
+    handlePolicyFieldChange("insuranceProvider", parsed.insurance_provider?.value ?? "");
+    handlePolicyFieldChange("icdCode", parsed.icd_code?.value ?? "");
 
     // Convert line items to itemized charges format
     if (parsed.line_items && parsed.line_items.length > 0) {
@@ -418,6 +427,7 @@ export default function ReviewPage() {
         })),
         policy_no: policyInfo.policyNumber,
         insurance_provider: policyInfo.insuranceProvider,
+        icd_code: policyInfo.icdCode || undefined,
       };
 
       console.log("Review: Submitting adjudication for claim:", claimId);
@@ -631,6 +641,7 @@ export default function ReviewPage() {
             onRemoveCharge={removeItem}
             onAddCharge={addNewItem}
             itemConfidences={itemConfidences}
+            headerConfidences={fieldConfidences}
           />
         </div>
       </div>

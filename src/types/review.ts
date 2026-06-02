@@ -15,6 +15,7 @@ export interface PolicyInfo {
   dischargeDate: string;
   policyNumber: string;
   insuranceProvider: string;
+  icdCode: string;
 }
 
 export interface ReviewState {

@@ -5,6 +5,8 @@
 
 import { apiClient } from '@/lib/api-client';
 import type {
+  BatchStatusResponse,
+  BulkExtractResponse,
   ClaimIntakeResponse,
   ClaimStatusResponse,
   ExtractedDataResponse,
@@ -12,6 +14,7 @@ import type {
   AdjudicateClaimRequest,
   ClaimRecord,
   PaginationParams,
+  DashboardResponse,
 } from '@/lib/api-types';
 
 const API_PREFIX = '/api/v1/claims';
@@ -45,6 +48,40 @@ class ClaimsService {
   }
 
   /**
+   * Upload multiple PDFs in a single request to /extract-bulk.
+   * Returns per-file accepted/rejected results.
+   */
+  async extractBulkClaim(files: File[]): Promise<BulkExtractResponse> {
+    const formData = new FormData();
+    for (const file of files) {
+      formData.append('files', file);
+    }
+
+    const response = await apiClient.post<BulkExtractResponse>(
+      `${API_PREFIX}/extract-bulk`,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        timeout: 600000,
+      }
+    );
+
+    return response.data;
+  }
+
+  /**
+   * Get aggregated status for a bulk-upload batch.
+   */
+  async getBatchStatus(batchId: string): Promise<BatchStatusResponse> {
+    const response = await apiClient.get<BatchStatusResponse>(
+      `${API_PREFIX}/batches/${batchId}`
+    );
+    return response.data;
+  }
+
+  /**
    * Poll claim status
    * @param claimId - The claim ID to check status for
    * @returns Current status of the claim
@@ -65,6 +102,67 @@ class ClaimsService {
   async getExtractedData(claimId: string): Promise<ExtractedDataResponse> {
     const response = await apiClient.get<ExtractedDataResponse>(
       `${API_PREFIX}/extracted/${claimId}`
+    );
+    return response.data;
+  }
+
+  /**
+   * Re-enqueue every failed claim in a batch. Returns { retried, claim_ids }.
+   */
+  async retryFailedInBatch(batchId: string): Promise<{ batch_id: string; retried: number; claim_ids?: string[]; message?: string }> {
+    const r = await apiClient.post<{ batch_id: string; retried: number; claim_ids?: string[]; message?: string }>(
+      `${API_PREFIX}/batches/${batchId}/retry-failed`,
+      {}
+    );
+    return r.data;
+  }
+
+  /**
+   * Flat list of the current user's claims, optionally filtered by dashboard bucket.
+   * Buckets: in_flight | needs_review | completed | auto_processed | failed
+   */
+  async getClaimsByBucket(bucket?: string, limit = 200): Promise<ClaimRecord[]> {
+    const params: Record<string, string | number> = { limit };
+    if (bucket) params.bucket = bucket;
+    const response = await apiClient.get<ClaimRecord[]>(`${API_PREFIX}/`, { params });
+    return response.data;
+  }
+
+  /**
+   * Pipeline overview across all of the current user's claims.
+   * @param window - one of 'today', 'week', 'all'
+   */
+  async getDashboard(window: 'today' | 'week' | 'all' = 'today', recentLimit = 10): Promise<DashboardResponse> {
+    const response = await apiClient.get<DashboardResponse>(
+      `${API_PREFIX}/dashboard`,
+      { params: { window, recent_limit: recentLimit } }
+    );
+    return response.data;
+  }
+
+  /**
+   * Download the original uploaded PDF for a claim.
+   * @param claimId - The claim ID
+   * @returns Blob containing the PDF bytes
+   */
+  async getClaimPDF(claimId: string): Promise<Blob> {
+    const response = await apiClient.get<Blob>(
+      `${API_PREFIX}/pdf/${claimId}`,
+      { responseType: 'blob' }
+    );
+    return response.data;
+  }
+
+  /**
+   * Download a batch's adjudicated results as a one-row-per-claim report.
+   * @param batchId - The batch ID
+   * @param format - 'csv' or 'xlsx' (real Excel workbook)
+   * @returns Blob containing the report bytes
+   */
+  async getBatchResults(batchId: string, format: 'csv' | 'xlsx'): Promise<Blob> {
+    const response = await apiClient.get<Blob>(
+      `${API_PREFIX}/batches/${batchId}/results.${format}`,
+      { responseType: 'blob' }
     );
     return response.data;
   }

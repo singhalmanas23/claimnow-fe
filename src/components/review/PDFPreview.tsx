@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { PolicyInfo, ItemizedCharge } from '@/types/review';
 import { pdfStorage } from '@/lib/pdf-storage';
+import { claimsService } from '@/services/claims.service';
 
 interface PDFPreviewProps {
   fileName?: string;
@@ -26,16 +27,33 @@ export default function PDFPreview({
   useEffect(() => {
     const loadPDF = async () => {
       const currentPdfId = sessionStorage.getItem('currentPdfId');
-      
+      const currentClaimId = sessionStorage.getItem('currentClaimId');
+
+      const tryBackendByClaimId = async (): Promise<boolean> => {
+        if (!currentClaimId) return false;
+        try {
+          const blob = await claimsService.getClaimPDF(currentClaimId);
+          const blobUrl = URL.createObjectURL(blob);
+          blobUrlRef.current = blobUrl;
+          setPdfData(blobUrl);
+          setShowFallback(false);
+          return true;
+        } catch (err) {
+          console.warn('PDFPreview: backend PDF fetch failed for claim_id', currentClaimId, err);
+          return false;
+        }
+      };
+
       if (!currentPdfId) {
         console.warn('PDFPreview: No PDF ID found in sessionStorage');
+        if (await tryBackendByClaimId()) return;
         try {
           const allPdfIds = await pdfStorage.getAllPDFIds();
-          
+
           if (allPdfIds.length > 0) {
             const latestId = allPdfIds[allPdfIds.length - 1];
             const pdfData = await pdfStorage.getPDF(latestId);
-            
+
             if (pdfData && pdfData.file) {
               const blobUrl = URL.createObjectURL(pdfData.file);
               blobUrlRef.current = blobUrl;
@@ -47,7 +65,7 @@ export default function PDFPreview({
         } catch (err) {
           console.error('PDFPreview: Error loading fallback PDF:', err);
         }
-        
+
         console.warn('PDFPreview: No PDF data found anywhere, showing fallback');
         setShowFallback(true);
         return;

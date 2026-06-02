@@ -163,6 +163,24 @@ export default function PolicyForm({ policyInfo, onFieldChange, fieldConfidences
             <ConfidenceBadge confidence={fieldConfidences?.insuranceProvider} />
           </div>
         </div>
+
+        <div className="flex gap-4">
+          <div className="flex-1 relative">
+            <div className="text-sm font-medium text-[rgba(29,36,51,0.8)] mb-2">ICD Code</div>
+            <input
+              type="text"
+              value={policyInfo.icdCode}
+              onChange={(e) => onFieldChange('icdCode', e.target.value)}
+              className={`w-full h-14 px-5 py-2.5 border rounded-lg focus:outline-none focus:ring-2 text-sm font-medium text-[#1D2433] ${
+                getConfidenceBorderClass(fieldConfidences?.icdCode)
+              }`}
+              placeholder="e.g. J18.9"
+            />
+            <ConfidenceBadge confidence={fieldConfidences?.icdCode} />
+          </div>
+          {/* Spacer keeps the single ICD field aligned to the 2-column grid */}
+          <div className="flex-1" />
+        </div>
       </div>
     </div>
   );

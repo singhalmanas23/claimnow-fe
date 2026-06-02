@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckIcon, HelpIcon, NotificationIcon, ChevronDownIcon } from '@/components/icons/Icons';
+import { HelpIcon, NotificationIcon, ChevronDownIcon } from '@/components/icons/Icons';
 
 interface ProcessedHeaderProps {
   userName?: string;
@@ -7,79 +7,48 @@ interface ProcessedHeaderProps {
   isLoading?: boolean;
 }
 
-export default function ProcessedHeader({ 
-  userName = "User", 
+// Minimal header — the page body renders its own progress stepper. The
+// previous design crammed a 3-step stepper into this row alongside the
+// logo, help button, and profile, which collided and wrapped badly on
+// anything narrower than ~1500px.
+export default function ProcessedHeader({
+  userName = "User",
   userEmail = "View profile",
-  isLoading = false 
+  isLoading = false,
 }: ProcessedHeaderProps) {
   return (
-    <header className="w-full h-[72px] bg-white border-b border-[#D8DDE7] flex items-center justify-between px-16 sticky top-0 z-50">
+    <header className="w-full h-[72px] bg-white border-b border-[#D8DDE7] flex items-center justify-between px-8 lg:px-16 sticky top-0 z-50">
       {/* Logo */}
-      <div className="text-xl font-bold bg-gradient-to-r from-[#2F5FED] to-[#60B6F7] bg-clip-text text-transparent">
+      <div className="text-xl font-bold bg-gradient-to-r from-[#2F5FED] to-[#60B6F7] bg-clip-text text-transparent flex-shrink-0">
         ClaimNow.ai
       </div>
-      
-      <div className="flex items-center gap-9">
-        {/* Progress Indicator - All Completed */}
-        <div className="flex items-center gap-8">
-          {/* Upload Document - Completed */}
-          <div className="flex flex-col items-center gap-1">
-            <div className="w-6 h-6 bg-[#EDFDF8] border border-[#08875D] rounded-full flex items-center justify-center">
-              <CheckIcon className="w-3.5 h-2.5" />
-            </div>
-            <span className="text-xs font-medium text-[#1D2433]">Upload document</span>
-          </div>
-          
-          {/* Line 1 - Completed */}
-          <div className="w-[122px] h-px bg-[#08875D]"></div>
-          
-          {/* Process Claim - Completed */}
-          <div className="flex flex-col items-center gap-1">
-            <div className="w-6 h-6 bg-[#EDFDF8] border border-[#08875D] rounded-full flex items-center justify-center">
-              <CheckIcon className="w-3.5 h-2.5" />
-            </div>
-            <span className="text-sm font-medium text-[rgba(29,36,51,0.8)]">Process Claim</span>
-          </div>
-          
-          {/* Line 2 - Completed */}
-          <div className="w-[129px] h-px bg-[#08875D]"></div>
-          
-          {/* Successfully Processed - Current */}
-          <div className="flex flex-col items-center gap-1">
-            <div className="w-6 h-6 border border-[rgba(29,36,51,0.8)] rounded-full flex items-center justify-center">
-              <div className="w-3.5 h-3.5 bg-[rgba(29,36,51,0.8)] rounded-full"></div>
-            </div>
-            <span className="text-sm font-medium text-[rgba(29,36,51,0.65)]">Successfully Processed</span>
-          </div>
-        </div>
 
+      <div className="flex items-center gap-4 lg:gap-6 flex-shrink-0">
         {/* Help Button */}
-        <div className="flex items-center gap-3 px-4 py-2 bg-[#FFF8EB] rounded">
+        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-[#FFF8EB] rounded">
           <HelpIcon />
-          <span className="text-base font-bold text-[#B25E09]">Need help?</span>
+          <span className="text-sm font-bold text-[#B25E09] whitespace-nowrap">Need help?</span>
         </div>
 
         {/* Notification */}
         <NotificationIcon />
 
         {/* Profile */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-200 to-gray-400 flex items-center justify-center overflow-hidden">
-              {!isLoading && (
-                <span className="text-white font-bold text-sm">
-                  {userName.charAt(0).toUpperCase()}
-                </span>
-              )}
-            </div>
-            <div className="flex flex-col">
-              <span className="text-base font-bold text-[rgba(29,36,51,0.8)]">
-                {isLoading ? 'Loading...' : userName}
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gray-200 to-gray-400 flex items-center justify-center overflow-hidden flex-shrink-0">
+            {!isLoading && (
+              <span className="text-white font-bold text-sm">
+                {userName.charAt(0).toUpperCase()}
               </span>
-              <span className="text-xs font-medium text-[rgba(29,36,51,0.65)]">
-                {userEmail}
-              </span>
-            </div>
+            )}
+          </div>
+          <div className="hidden md:flex flex-col min-w-0 max-w-[180px]">
+            <span className="text-sm font-bold text-[rgba(29,36,51,0.85)] truncate">
+              {isLoading ? 'Loading...' : userName}
+            </span>
+            <span className="text-xs font-medium text-[rgba(29,36,51,0.6)] truncate">
+              {userEmail}
+            </span>
           </div>
           <ChevronDownIcon />
         </div>

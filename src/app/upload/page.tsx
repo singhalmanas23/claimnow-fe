@@ -3,6 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import UploadComponent from '../../components/UploadComponent';
+import BulkUploadComponent from '../../components/BulkUploadComponent';
+import UrlUploadComponent from '../../components/UrlUploadComponent';
+import DriveUploadComponent from '../../components/DriveUploadComponent';
 import { useExtractClaim, useClaimStatus, useExtractedData } from '@/hooks/use-claims';
 import { useCurrentUser } from '@/hooks/use-auth';
 import { useClaims } from '@/hooks/use-claims';
@@ -15,6 +18,7 @@ export default function UploadPage() {
   const { data: currentUser, isLoading: userLoading } = useCurrentUser();
   const { data: claims } = useClaims({ limit: 5 });
   
+  const [mode, setMode] = useState<'single' | 'bulk' | 'url' | 'drive'>('single');
   const [uploadState, setUploadState] = useState<'empty' | 'processing' | 'success'>('empty');
   const [extractedData, setExtractedData] = useState<ExtractedDataResponse | null>(null);
   const [error, setError] = useState<string>('');
@@ -246,59 +250,123 @@ export default function UploadPage() {
           </div>
         )}
 
-        {/* Upload Section */}
-        <div className="w-[739px] h-[312px] bg-white/90 backdrop-blur-sm rounded-[32px] relative mb-[241px]">
-          {/* Functional Upload Component */}
-          <div className="absolute left-3 top-3 w-[715px] h-[228px]">
-            <UploadComponent 
-              onFileUpload={handleFileUpload}
-              onStartClaim={handleStartClaim}
-              onUploadSuccess={handleUploadSuccess}
-              onReset={handleReset}
-              uploadState={uploadState}
-              uploadedFileName={uploadedFileName}
-              className="w-full h-full"
-            />
-          </div>
-
-          {/* Dynamic Send/Start Claim Button */}
-          <div className="absolute right-3 bottom-3">
-            {uploadState === 'success' && extractedData ? (
-              <button 
-                className="flex items-center gap-[7px] bg-gradient-to-br from-[#2F5FED] to-[#60B6F7] text-white px-5 py-3 rounded-full hover:from-[#2854D6] hover:to-[#4B7AE8] transition-all duration-200"
-                onClick={handleStartClaim}
-                disabled={extractClaimMutation.isPending}
-              >
-                <div className="w-6 h-6 flex items-center justify-center">
-                  <svg width="19.5" height="19.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path 
-                      d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" 
-                      fill="white"
-                    />
-                  </svg>
-                </div>
-                <span className="font-satoshi font-medium text-[16px] leading-[21.6px]">
-                  {extractClaimMutation.isPending ? 'Processing...' : 'Start claim'}
-                </span>
-              </button>
-            ) : (
-              <button 
-                className="w-12 h-12 bg-[rgba(29,36,51,0.4)] rounded-full flex items-center justify-center hover:bg-[rgba(29,36,51,0.6)] transition-colors"
-                onClick={() => console.log('Send clicked')}
-              >
-                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path 
-                    d="M16.5 1.5L8.25 9.75M16.5 1.5L11.25 16.5L8.25 9.75M16.5 1.5L1.5 6.75L8.25 9.75" 
-                    stroke="white" 
-                    strokeWidth="1.5" 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </button>
-            )}
+        {/* Mode Toggle: Single / Bulk */}
+        <div className="w-[739px] mb-4 flex items-center justify-center">
+          <div className="inline-flex rounded-full border border-[#D8DDE7] bg-white/80 p-1 backdrop-blur-sm">
+            <button
+              type="button"
+              onClick={() => setMode('single')}
+              className={`px-5 py-2 rounded-full font-satoshi text-[14px] font-medium transition-colors ${
+                mode === 'single'
+                  ? 'bg-gradient-to-br from-[#2F5FED] to-[#60B6F7] text-white shadow-sm'
+                  : 'text-[rgba(29,36,51,0.7)] hover:text-[#1D2433]'
+              }`}
+            >
+              Single upload
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('bulk')}
+              className={`px-5 py-2 rounded-full font-satoshi text-[14px] font-medium transition-colors ${
+                mode === 'bulk'
+                  ? 'bg-gradient-to-br from-[#2F5FED] to-[#60B6F7] text-white shadow-sm'
+                  : 'text-[rgba(29,36,51,0.7)] hover:text-[#1D2433]'
+              }`}
+            >
+              Bulk upload
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('url')}
+              className={`px-5 py-2 rounded-full font-satoshi text-[14px] font-medium transition-colors ${
+                mode === 'url'
+                  ? 'bg-gradient-to-br from-[#2F5FED] to-[#60B6F7] text-white shadow-sm'
+                  : 'text-[rgba(29,36,51,0.7)] hover:text-[#1D2433]'
+              }`}
+            >
+              By URL
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('drive')}
+              className={`px-5 py-2 rounded-full font-satoshi text-[14px] font-medium transition-colors ${
+                mode === 'drive'
+                  ? 'bg-gradient-to-br from-[#2F5FED] to-[#60B6F7] text-white shadow-sm'
+                  : 'text-[rgba(29,36,51,0.7)] hover:text-[#1D2433]'
+              }`}
+            >
+              From Drive
+            </button>
           </div>
         </div>
+
+        {/* Upload Section */}
+        {mode === 'single' ? (
+          <div className="w-[739px] h-[312px] bg-white/90 backdrop-blur-sm rounded-[32px] relative mb-[241px]">
+            {/* Functional Upload Component */}
+            <div className="absolute left-3 top-3 w-[715px] h-[228px]">
+              <UploadComponent
+                onFileUpload={handleFileUpload}
+                onStartClaim={handleStartClaim}
+                onUploadSuccess={handleUploadSuccess}
+                onReset={handleReset}
+                uploadState={uploadState}
+                uploadedFileName={uploadedFileName}
+                className="w-full h-full"
+              />
+            </div>
+
+            {/* Dynamic Send/Start Claim Button */}
+            <div className="absolute right-3 bottom-3">
+              {uploadState === 'success' && extractedData ? (
+                <button
+                  className="flex items-center gap-[7px] bg-gradient-to-br from-[#2F5FED] to-[#60B6F7] text-white px-5 py-3 rounded-full hover:from-[#2854D6] hover:to-[#4B7AE8] transition-all duration-200"
+                  onClick={handleStartClaim}
+                  disabled={extractClaimMutation.isPending}
+                >
+                  <div className="w-6 h-6 flex items-center justify-center">
+                    <svg width="19.5" height="19.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path
+                        d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13"
+                        fill="white"
+                      />
+                    </svg>
+                  </div>
+                  <span className="font-satoshi font-medium text-[16px] leading-[21.6px]">
+                    {extractClaimMutation.isPending ? 'Processing...' : 'Start claim'}
+                  </span>
+                </button>
+              ) : (
+                <button
+                  className="w-12 h-12 bg-[rgba(29,36,51,0.4)] rounded-full flex items-center justify-center hover:bg-[rgba(29,36,51,0.6)] transition-colors"
+                  onClick={() => console.log('Send clicked')}
+                >
+                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path
+                      d="M16.5 1.5L8.25 9.75M16.5 1.5L11.25 16.5L8.25 9.75M16.5 1.5L1.5 6.75L8.25 9.75"
+                      stroke="white"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+              )}
+            </div>
+          </div>
+        ) : mode === 'bulk' ? (
+          <div className="w-[739px] bg-white/90 backdrop-blur-sm rounded-[32px] p-3 mb-[241px]">
+            <BulkUploadComponent />
+          </div>
+        ) : mode === 'url' ? (
+          <div className="w-[739px] bg-white/90 backdrop-blur-sm rounded-[32px] p-3 mb-[241px]">
+            <UrlUploadComponent />
+          </div>
+        ) : (
+          <div className="w-[739px] bg-white/90 backdrop-blur-sm rounded-[32px] p-3 mb-[241px]">
+            <DriveUploadComponent />
+          </div>
+        )}
 
         {/* Recent Claims Section */}
         <div className="w-full max-w-[1312px] mx-auto px-16">

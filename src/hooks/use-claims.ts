@@ -57,6 +57,42 @@ export function useExtractClaim() {
 }
 
 /**
+ * Hook to poll a batch's aggregate status. Stops polling when no claims are in-flight.
+ */
+export function useBatchStatus(batchId: string | null, enabled = true) {
+  return useQuery({
+    queryKey: [...claimsKeys.all, 'batch', batchId],
+    queryFn: () => claimsService.getBatchStatus(batchId!),
+    enabled: !!batchId && enabled,
+    refetchInterval: (query) => {
+      if (!enabled) return false;
+      const data = query.state.data as { counts?: { in_flight?: number } } | undefined;
+      if (data?.counts && data.counts.in_flight === 0) return false;
+      return 3000;
+    },
+    staleTime: 0,
+  });
+}
+
+/**
+ * Hook to upload multiple PDFs at once.
+ * Returns BulkExtractResponse with per-file accepted/rejected results.
+ */
+export function useExtractBulkClaim() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (files: File[]) => claimsService.extractBulkClaim(files),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: claimsKeys.lists() });
+    },
+    onError: (error: unknown) => {
+      const apiError = handleApiError(error);
+      console.error('Bulk extraction upload failed:', apiError.message);
+    },
+  });
+}
+
+/**
  * Hook to poll claim status
  * Use with refetchInterval for automatic polling
  */

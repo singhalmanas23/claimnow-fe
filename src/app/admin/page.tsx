@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Users, FileText, BarChart3, Shield } from 'lucide-react';
+import { Users, FileText, BarChart3, Shield, Building2, Webhook } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +11,9 @@ import {
   UsersManagement,
   PoliciesManagement,
   ClaimsMonitoring,
+  CompaniesManagement,
+  WebhookFailures,
+  CompanyAnalytics,
 } from '@/components/admin';
 
 export default function AdminDashboard() {
@@ -63,8 +66,29 @@ export default function AdminDashboard() {
         {/* Main Content Section */}
         <Card className="border border-gray-200 shadow-lg">
           <CardContent className="p-4 md:p-6">
-            <Tabs defaultValue="users" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-3 lg:w-auto bg-gray-100 p-1">
+            <Tabs defaultValue="companies" className="space-y-4">
+              <TabsList className="grid w-full grid-cols-6 lg:w-auto bg-gray-100 p-1">
+                <TabsTrigger
+                  value="analytics"
+                  className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm text-gray-600"
+                >
+                  <BarChart3 className="h-4 w-4" />
+                  <span className="hidden sm:inline">Analytics</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="companies"
+                  className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm text-gray-600"
+                >
+                  <Building2 className="h-4 w-4" />
+                  <span className="hidden sm:inline">Companies</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="webhooks"
+                  className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm text-gray-600"
+                >
+                  <Webhook className="h-4 w-4" />
+                  <span className="hidden sm:inline">Webhooks</span>
+                </TabsTrigger>
                 <TabsTrigger
                   value="users"
                   className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm text-gray-600"
@@ -87,6 +111,18 @@ export default function AdminDashboard() {
                   <span className="hidden sm:inline">Claims</span>
                 </TabsTrigger>
               </TabsList>
+
+              <TabsContent value="analytics" className="space-y-4">
+                <CompanyAnalytics />
+              </TabsContent>
+
+              <TabsContent value="companies" className="space-y-4">
+                <CompaniesManagement />
+              </TabsContent>
+
+              <TabsContent value="webhooks" className="space-y-4">
+                <WebhookFailures />
+              </TabsContent>
 
               <TabsContent value="users" className="space-y-4">
                 <UsersManagement />

@@ -70,6 +70,7 @@ export interface ExtractedData {
   net_payable_amount: number;
   policy_no?: string;
   insurance_provider?: string;
+  icd_code?: string;
 }
 
 export interface AdjudicatedLineItem extends LineItem {
@@ -123,6 +124,9 @@ export interface ExtractedDataWithConfidence {
   admission_date: FieldWithConfidence<string>;
   discharge_date: FieldWithConfidence<string | null>;
   net_payable_amount: FieldWithConfidence<number>;
+  policy_no?: FieldWithConfidence<string | null>;
+  insurance_provider?: FieldWithConfidence<string | null>;
+  icd_code?: FieldWithConfidence<string | null>;
   line_items: LineItemWithConfidence[];
 }
 
@@ -176,6 +180,46 @@ export interface ClaimIntakeResponse {
   status: string;
 }
 
+export interface BulkExtractItem {
+  claim_id?: string;
+  filename?: string;
+  status: 'queued' | 'rejected' | 'error';
+  error?: string;
+}
+
+export interface BulkExtractResponse {
+  batch_id: string;
+  accepted: number;
+  rejected: number;
+  results: BulkExtractItem[];
+}
+
+export type BatchBucket = 'auto_processed' | 'needs_review' | 'failed' | 'in_flight';
+
+export interface BatchClaimItem {
+  claim_id: string;
+  filename: string | null;
+  status: ClaimStatusResponse['status'];
+  bucket: BatchBucket;
+  last_error: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface BatchCounts {
+  auto_processed: number;
+  needs_review: number;
+  failed: number;
+  in_flight: number;
+  total: number;
+}
+
+export interface BatchStatusResponse {
+  batch_id: string;
+  counts: BatchCounts;
+  items: BatchClaimItem[];
+}
+
 export interface ClaimStatusResponse {
   claim_id: string;
   status: 'queued' | 'processing' | 'extracted' | 'failed' | 'adjudicating' | 'completed';
@@ -192,6 +236,12 @@ export interface ClaimRecord {
   adjudicated_data: AdjudicatedClaim;
   created_at: string;
   updated_at: string;
+  batch_id?: string | null;
+  last_error?: string | null;
+  source_type?: string;
+  source_url?: string | null;
+  source_ref?: string | null;
+  file_path?: string | null;
 }
 
 export interface AdminClaim {
@@ -254,4 +304,34 @@ export interface PoliciesListResponse {
 
 export interface ApiErrorResponse {
   detail: string;
+}
+
+export interface DashboardCounts {
+  total: number;
+  in_flight: number;
+  needs_review: number;
+  completed: number;
+  failed: number;
+}
+
+export interface DashboardRecentBatch {
+  batch_id: string;
+  submitted_at: string | null;
+  total: number;
+  in_flight: number;
+  needs_review: number;
+  completed: number;
+  failed: number;
+}
+
+export interface DashboardResponse {
+  window: 'today' | 'week' | 'all';
+  since: string | null;
+  counts: DashboardCounts;
+  auto_rate_percent: number | null;
+  throughput: {
+    claims_per_hour: number;
+    window_hours: number;
+  };
+  recent_batches: DashboardRecentBatch[];
 }

@@ -1,6 +1,6 @@
 import React from 'react';
 import { ItemizedCharge } from '@/types/review';
-import { PlusIcon, TrashIcon } from '@/components/icons/Icons';
+import { PlusIcon, TrashIcon, CheckIcon } from '@/components/icons/Icons';
 import FormInput from '@/components/ui/FormInput';
 
 interface ItemizedChargesProps {
@@ -10,6 +10,14 @@ interface ItemizedChargesProps {
   onRemoveCharge: (id: string) => void;
   onAddCharge: () => void;
   itemConfidences?: Array<{ [key: string]: number }>;
+  /**
+   * Optional header-field confidences (hospital_name, patient_name, bill_no,
+   * dates, policy_no, insurance_provider, net_payable_amount).
+   * When provided, the "Issues found" badge counts BOTH header + line-item
+   * fields below the same threshold the backend uses for auto-adjudication
+   * (0.9). This keeps the UI aligned with WHY a claim landed in needs_review.
+   */
+  headerConfidences?: { [key: string]: number };
 }
 
 const getConfidenceBorderClass = (confidence?: number): string => {
@@ -41,13 +49,18 @@ const ConfidenceBadge = ({ confidence }: { confidence?: number }) => {
   );
 };
 
+// Same threshold as the backend's AUTO_ADJUDICATE_THRESHOLD env var (default 0.9).
+// Field confidences below this trip the claim into needs_review.
+const ISSUE_CONFIDENCE_THRESHOLD = 0.9;
+
 export default function ItemizedCharges({
   charges,
   onUpdateCharge,
   onUpdateQuantity,
   onRemoveCharge,
   onAddCharge,
-  itemConfidences
+  itemConfidences,
+  headerConfidences
 }: ItemizedChargesProps) {
   const getTotalAmount = (quantity: number, unitPrice: number) => {
     return quantity * unitPrice;
@@ -59,15 +72,24 @@ export default function ItemizedCharges({
     );
   };
 
-  // Calculate total issues for the badge
+  // Count fields whose confidence is below the backend's auto-adjudicate
+  // threshold (header fields + line-item fields combined). Matches the
+  // logic that decides auto-process vs needs_review, so "0 Issues found"
+  // genuinely means "this would have auto-processed."
   const getTotalIssues = () => {
-    if (!itemConfidences) return 0;
     let issues = 0;
-    itemConfidences.forEach(item => {
-      Object.values(item).forEach(conf => {
-        if (conf < 0.9) issues++;
+    if (itemConfidences) {
+      itemConfidences.forEach((item) => {
+        Object.values(item).forEach((conf) => {
+          if (typeof conf === "number" && conf < ISSUE_CONFIDENCE_THRESHOLD) issues++;
+        });
       });
-    });
+    }
+    if (headerConfidences) {
+      Object.values(headerConfidences).forEach((conf) => {
+        if (typeof conf === "number" && conf < ISSUE_CONFIDENCE_THRESHOLD) issues++;
+      });
+    }
     return issues;
   };
 
@@ -90,9 +112,9 @@ export default function ItemizedCharges({
         ) : (
           <div className="flex items-center gap-2 px-3 py-1 bg-[#EDFDF8] rounded-full">
             <div className="w-6 h-6 bg-[#08875D] rounded-full flex items-center justify-center">
-              <span className="text-white text-sm font-medium">0</span>
+              <CheckIcon className="w-3.5 h-2.5" />
             </div>
-            <span className="text-[#08875D] text-xs font-medium">Issues found</span>
+            <span className="text-[#08875D] text-xs font-medium">No issues found</span>
           </div>
         )}
       </div>
