@@ -1,7 +1,10 @@
 "use client";
 
+// Uses useSearchParams (?view, ?claimId) — opt out of static prerendering.
+export const dynamic = "force-dynamic";
+
 import React, { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import type { AdjudicatedClaim, ClaimRecord } from "@/lib/api-types";
 import { useCurrentUser } from "@/hooks/use-auth";
 import ProcessedHeader from "@/components/processed/ProcessedHeader";
@@ -12,7 +15,6 @@ import CombinedBreakupTable from "@/components/processed/CombinedBreakupTable";
 
 export default function ProcessedPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { data: currentUser, isLoading: userLoading } = useCurrentUser();
   const [claimData, setClaimData] = useState<AdjudicatedClaim | null>(null);
   const [claimRecord, setClaimRecord] = useState<ClaimRecord | null>(null);
@@ -31,8 +33,12 @@ export default function ProcessedPage() {
 
   useEffect(() => {
     // Check if this is a historical view (from claims history page)
-    const viewMode = searchParams?.get("view");
-    const claimId = searchParams?.get("claimId");
+    const sp =
+      typeof globalThis !== "undefined" && globalThis.location
+        ? new URLSearchParams(globalThis.location.search)
+        : new URLSearchParams();
+    const viewMode = sp.get("view");
+    const claimId = sp.get("claimId");
 
     if (viewMode === "history" && claimId) {
       // Load from claims history
@@ -74,7 +80,8 @@ export default function ProcessedPage() {
       }
     }
     setLoading(false);
-  }, [searchParams, router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router]);
 
   if (loading || !claimData) {
     return (

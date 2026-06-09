@@ -1,7 +1,11 @@
 "use client";
 
+// Uses useSearchParams (?highlight) — opt out of static prerendering so the
+// production build doesn't require a Suspense boundary.
+export const dynamic = "force-dynamic";
+
 import React, { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { claimsService } from "@/services/claims.service";
 import type { DashboardResponse } from "@/lib/api-types";
@@ -43,8 +47,10 @@ function timeAgo(iso: string | null): string {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const highlightBatchId = searchParams?.get("highlight") ?? null;
+  const highlightBatchId =
+    typeof globalThis !== "undefined" && globalThis.location
+      ? new URLSearchParams(globalThis.location.search).get("highlight")
+      : null;
   const [window, setWindow] = useState<Window>("today");
 
   const { data, isLoading, isError, error, dataUpdatedAt } = useQuery({
