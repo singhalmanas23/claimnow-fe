@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useLogin } from "@/hooks/use-auth";
+import { authService } from "@/services/auth.service";
 
 interface resp {
   response: {
@@ -61,8 +62,15 @@ export default function SignInPage() {
           password: password,
         });
 
-        // Redirect to upload page on success
-        router.push("/upload");
+        // Redirect by role: admins to the admin dashboard, everyone else to
+        // the upload/claim flow. The API exposes admins via is_super_admin
+        // (role_id 1 is the admin role but isn't returned by /users/me).
+        try {
+          const me = await authService.getCurrentUser();
+          router.push(me?.is_super_admin || me?.role_id === 1 ? "/admin" : "/upload");
+        } catch {
+          router.push("/upload");
+        }
       } catch (err: any) //eslint-disable-line @typescript-eslint/no-explicit-any
       {
         setError(

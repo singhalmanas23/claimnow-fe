@@ -1,12 +1,12 @@
 import React from 'react';
 import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { useClaims } from '@/hooks';
+import { useAdminClaims } from '@/hooks';
 import { ClaimsTable } from './ClaimsTable';
 
 
 export function ClaimsMonitoring() {
-  const { data: claims, isLoading, refetch } = useClaims();
+  const { data: claims, isLoading, refetch } = useAdminClaims();
   console.log('claim',claims);
 
   return (

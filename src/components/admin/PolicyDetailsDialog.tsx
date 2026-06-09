@@ -60,9 +60,9 @@ export function PolicyDetailsDialog({ policyId, open, onClose }: PolicyDetailsDi
     if (policy) {
       setFormData({
         policy_name: policy.policy_name,
-        sum_insured: policy.rules.sum_insured,
-        co_payment_percentage: policy.rules.co_payment_percentage,
-        sub_limits: Object.entries(policy.rules.sub_limits).map(([key, value]) => ({
+        sum_insured: policy.rules?.sum_insured ?? 0,
+        co_payment_percentage: policy.rules?.co_payment_percentage ?? 0,
+        sub_limits: Object.entries(policy.rules?.sub_limits ?? {}).map(([key, value]) => ({
           id: Date.now().toString() + Math.random(),
           key,
           type: value.type || 'fixed',
@@ -82,9 +82,9 @@ export function PolicyDetailsDialog({ policyId, open, onClose }: PolicyDetailsDi
     if (policy) {
       setFormData({
         policy_name: policy.policy_name,
-        sum_insured: policy.rules.sum_insured,
-        co_payment_percentage: policy.rules.co_payment_percentage,
-        sub_limits: Object.entries(policy.rules.sub_limits).map(([key, value]) => ({
+        sum_insured: policy.rules?.sum_insured ?? 0,
+        co_payment_percentage: policy.rules?.co_payment_percentage ?? 0,
+        sub_limits: Object.entries(policy.rules?.sub_limits ?? {}).map(([key, value]) => ({
           id: Date.now().toString() + Math.random(),
           key,
           type: value.type || 'fixed',

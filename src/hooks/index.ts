@@ -15,6 +15,7 @@ export {
 // Claims Hooks
 export {
   useClaims,
+  useAdminClaims,
   useClaim,
   useExtractClaim,
   useClaimStatus,

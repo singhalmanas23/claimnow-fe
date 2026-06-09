@@ -30,6 +30,15 @@ export function useClaims(params?: PaginationParams) {
   });
 }
 
+/** Admin-only: all claims across every tenant. */
+export function useAdminClaims(params?: PaginationParams) {
+  return useQuery({
+    queryKey: [...claimsKeys.list(params), 'admin'],
+    queryFn: () => claimsService.getAdminClaims(params),
+    staleTime: 2 * 60 * 1000,
+  });
+}
+
 /**
  * Hook to get a specific claim by ID
  */

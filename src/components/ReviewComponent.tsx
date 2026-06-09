@@ -387,7 +387,7 @@ const ReviewComponent: React.FC<ReviewComponentProps> = ({
                     <div className="flex items-center gap-1">
                       <span className="text-sm font-medium text-[rgba(29,36,51,0.8)]">₹</span>
                       <span className="text-sm font-medium text-[#1D2433]">
-                        {getTotalAmount(charge.quantity, charge.unitPrice).toLocaleString()}.00
+                        {getTotalAmount(charge.quantity, charge.unitPrice).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                     </div>
                   </div>

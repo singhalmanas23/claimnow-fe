@@ -56,14 +56,14 @@ export default function ClaimedTable({ data }: ClaimedTableProps) {
               <span className="text-sm font-medium text-[#1D2433]">{item.quantity}X</span>
               <div className="flex items-center gap-1">
                 <span className="text-sm font-normal text-[#1D2433]">₹</span>
-                <span className="text-sm font-medium text-[#1D2433]">{item.unitPrice.toLocaleString()}.00</span>
+                <span className="text-sm font-medium text-[#1D2433]">{item.unitPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
             </div>
           </div>
           <div className="w-[156px] min-h-10 bg-white border-r border-[#D8DDE7] flex items-center px-4">
             <div className="flex items-center gap-1">
               <span className="text-sm font-normal text-[#1D2433]">₹</span>
-              <span className="text-sm font-medium text-[#1D2433]">{item.totalAmount.toLocaleString()}.00</span>
+              <span className="text-sm font-medium text-[#1D2433]">{item.totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
           </div>
           <div className="w-[170px] min-h-10 bg-white border-r border-[#D8DDE7] flex items-center px-4">
@@ -88,7 +88,7 @@ export default function ClaimedTable({ data }: ClaimedTableProps) {
         <div className="w-[296px] h-10 bg-[#EDFDF8] border-r border-[#D8DDE7] flex items-center px-4">
           <div className="flex items-center gap-1">
             <span className="text-sm font-medium text-[#1D2433]">₹</span>
-            <span className="text-sm font-semibold text-[#1D2433]">{totalAmount.toLocaleString()}.00</span>
+            <span className="text-sm font-semibold text-[#1D2433]">{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
         </div>
         <div className="flex-1 h-10 bg-[#EDFDF8] flex items-center px-4">

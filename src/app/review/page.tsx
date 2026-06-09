@@ -175,9 +175,11 @@ export default function ReviewPage() {
   const [uploadedFileName, setUploadedFileName] =
     useState<string>("Bill11.pdf");
   const [fieldConfidences, setFieldConfidences] = useState<FieldConfidence>({});
+  // Keyed by charge id (not array index) so confidences stay attached to the
+  // correct line item after rows are deleted/reordered.
   const [itemConfidences, setItemConfidences] = useState<
-    Array<{ [key: string]: number }>
-  >([]);
+    Record<string, { [key: string]: number }>
+  >({});
   const [criticalIssues, setCriticalIssues] = useState(0);
   const [warningIssues, setWarningIssues] = useState(0);
   
@@ -292,14 +294,18 @@ export default function ReviewPage() {
 
     setFieldConfidences(confidences);
 
-    // Track item confidences
-    const itemConfs =
-      parsed.line_items?.map((item) => ({
+    // Track item confidences, keyed by the SAME id the charges use below
+    // (String(index + 1)) so a confidence stays bound to its line item even
+    // after rows above it are deleted.
+    const itemConfs: Record<string, { [key: string]: number }> = {};
+    parsed.line_items?.forEach((item, index) => {
+      itemConfs[String(index + 1)] = {
         description: item.description?.confidence || 1,
         quantity: item.quantity?.confidence || 1,
         unitPrice: item.unit_price?.confidence || 1,
         totalAmount: item.total_amount?.confidence || 1,
-      })) || [];
+      };
+    });
 
     setItemConfidences(itemConfs);
 
@@ -312,7 +318,7 @@ export default function ReviewPage() {
       else if (conf < 0.9) warnings++;
     });
 
-    itemConfs.forEach((item) => {
+    Object.values(itemConfs).forEach((item) => {
       Object.values(item).forEach((conf) => {
         if (conf < 0.5) critical++;
         else if (conf < 0.9) warnings++;

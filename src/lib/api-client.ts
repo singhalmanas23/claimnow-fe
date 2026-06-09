@@ -64,12 +64,18 @@ apiClient.interceptors.response.use(
       url: error.config?.url,
       method: error.config?.method,
     });
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      // Don't bounce on a failed login attempt — let the form show the error.
+      !originalRequest.url?.includes('/token')
+    ) {
       originalRequest._retry = true;
       clearAuth();
 
       if (typeof window !== 'undefined') {
-        window.location.href = '/login';
+        // The sign-in page lives at the root, not /login.
+        window.location.href = '/';
       }
     }
 

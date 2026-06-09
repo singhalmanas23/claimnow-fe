@@ -205,7 +205,9 @@ class ClaimsService {
    * @returns List of user's claims
    */
   async getClaims(params?: PaginationParams): Promise<ClaimRecord[]> {
-    const response = await apiClient.get<ClaimRecord[]>(ADMIN_API_CLAIM, {
+    // User-scoped claims list (the logged-in user's company). The admin
+    // all-tenants list lives at ADMIN_API_CLAIM and requires admin rights.
+    const response = await apiClient.get<ClaimRecord[]>(`${API_PREFIX}/`, {
       params: {
         skip: params?.skip || 0,
         limit: params?.limit || 100,
@@ -215,14 +217,51 @@ class ClaimsService {
     return response.data;
   }
 
+  /** Admin-only: all claims across every tenant (requires admin rights). */
+  async getAdminClaims(params?: PaginationParams): Promise<ClaimRecord[]> {
+    const response = await apiClient.get<ClaimRecord[]>(ADMIN_API_CLAIM, {
+      params: {
+        skip: params?.skip || 0,
+        limit: params?.limit || 100,
+      },
+    });
+    return response.data;
+  }
+
   /**
    * Get a specific claim by ID
    * @param claimId - The unique claim identifier
    * @returns Claim details
    */
   async getClaimById(claimId: string): Promise<ClaimRecord> {
-    const response = await apiClient.get<ClaimRecord>(`${API_PREFIX}/${claimId}`);
-    return response.data;
+    // The backend has no single GET /claims/{id}; it exposes granular
+    // endpoints (status / adjudicated / extracted). Assemble the record here.
+    const statusResp = await apiClient.get<{ claim_id: string; status: string; last_error?: string }>(
+      `${API_PREFIX}/status/${claimId}`
+    );
+    const record = {
+      claim_id: claimId,
+      status: statusResp.data.status,
+      last_error: statusResp.data.last_error ?? null,
+    } as ClaimRecord;
+
+    // Adjudicated result — present once adjudication has run.
+    try {
+      const adj = await apiClient.get<AdjudicatedClaim>(`${API_PREFIX}/adjudicated/${claimId}`);
+      record.adjudicated_data = adj.data;
+    } catch {
+      /* not adjudicated yet */
+    }
+
+    // Extracted data — best-effort (for header fields / review).
+    try {
+      const ext = await apiClient.get(`${API_PREFIX}/extracted/${claimId}`);
+      record.extracted_data = ext.data as ClaimRecord["extracted_data"];
+    } catch {
+      /* not extracted / no access */
+    }
+
+    return record;
   }
 
 

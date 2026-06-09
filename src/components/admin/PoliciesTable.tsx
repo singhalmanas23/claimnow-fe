@@ -61,11 +61,15 @@ export function PoliciesTable({ policies, onViewDetails }: PoliciesTableProps) {
                 <TableRow key={policy.policy_id} className="hover:bg-gray-50 transition-colors">
                   <TableCell className="font-medium text-gray-900">{policy.policy_id}</TableCell>
                   <TableCell className="text-gray-900">{policy.policy_name}</TableCell>
-                  <TableCell className="text-gray-700">₹{policy.rules.sum_insured.toLocaleString()}</TableCell>
-                  <TableCell className="text-gray-700">{policy.rules.co_payment_percentage}%</TableCell>
+                  <TableCell className="text-gray-700">
+                    {typeof policy.rules?.sum_insured === "number"
+                      ? `₹${policy.rules.sum_insured.toLocaleString()}`
+                      : "—"}
+                  </TableCell>
+                  <TableCell className="text-gray-700">{policy.rules?.co_payment_percentage ?? 0}%</TableCell>
                   <TableCell>
                     <Badge variant="outline" className="border-purple-200 text-purple-700 bg-purple-50">
-                      {Object.keys(policy.rules.sub_limits).length} rules
+                      {Object.keys(policy.rules?.sub_limits ?? {}).length} rules
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">

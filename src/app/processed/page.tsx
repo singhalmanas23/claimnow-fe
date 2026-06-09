@@ -300,11 +300,18 @@ export default function ProcessedPage() {
   };
 
   const handleGoHome = () => {
-    // Clear session storage
+    // Clear the per-claim session data, but keep the batch context so the user
+    // returns to the list of remaining claims rather than starting over.
     sessionStorage.removeItem("extractedClaimData");
     sessionStorage.removeItem("adjudicatedClaimData");
     sessionStorage.removeItem("selectedClaimData");
-    router.push("/upload");
+    // Go to the remaining claims: the batch tracker if we came from one,
+    // otherwise the full claims list.
+    if (currentBatchId) {
+      router.push(`/batches/${currentBatchId}`);
+    } else {
+      router.push("/claims");
+    }
   };
 
   const handleBackToClaims = () => {
@@ -556,7 +563,11 @@ export default function ProcessedPage() {
             className="px-6 py-3 bg-gradient-to-r from-[#2F5FED] to-[#547DF5] text-white rounded-lg hover:from-[#2854D6] hover:to-[#4B7AE8] transition-all"
           >
             <span className="text-sm font-medium">
-              {isHistoricalView ? "Back to Claims" : "Go Home"}
+              {isHistoricalView
+                ? "Back to Claims"
+                : currentBatchId
+                ? "Back to Batch"
+                : "View Claims"}
             </span>
           </button>
         </div>

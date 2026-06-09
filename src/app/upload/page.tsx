@@ -188,6 +188,15 @@ export default function UploadPage() {
               ClaimNow.ai
             </h1>
           </div>
+          {/* Admin link — only for admins */}
+          {(currentUser?.is_super_admin || currentUser?.role_id === 1) && (
+            <button
+              onClick={() => router.push("/admin")}
+              className="px-4 py-2 text-sm font-medium text-[#2F5FED] border border-[#2F5FED] rounded-lg hover:bg-[#2F5FED] hover:text-white transition-colors"
+            >
+              Admin Dashboard
+            </button>
+          )}
         </div>
       </header>
 

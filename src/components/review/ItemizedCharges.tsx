@@ -9,7 +9,8 @@ interface ItemizedChargesProps {
   onUpdateQuantity: (id: string, delta: number) => void;
   onRemoveCharge: (id: string) => void;
   onAddCharge: () => void;
-  itemConfidences?: Array<{ [key: string]: number }>;
+  /** Keyed by charge id so a confidence stays bound to its row after deletes. */
+  itemConfidences?: Record<string, { [key: string]: number }>;
   /**
    * Optional header-field confidences (hospital_name, patient_name, bill_no,
    * dates, policy_no, insurance_provider, net_payable_amount).
@@ -79,7 +80,10 @@ export default function ItemizedCharges({
   const getTotalIssues = () => {
     let issues = 0;
     if (itemConfidences) {
-      itemConfidences.forEach((item) => {
+      // Iterate the live charges so confidences of deleted rows are excluded.
+      charges.forEach((charge) => {
+        const item = itemConfidences[charge.id];
+        if (!item) return;
         Object.values(item).forEach((conf) => {
           if (typeof conf === "number" && conf < ISSUE_CONFIDENCE_THRESHOLD) issues++;
         });
@@ -120,8 +124,8 @@ export default function ItemizedCharges({
       </div>
       
       <div className="space-y-4">
-        {charges.map((charge, index) => {
-          const itemConf = itemConfidences?.[index];
+        {charges.map((charge) => {
+          const itemConf = itemConfidences?.[charge.id];
           
           return (
             <div key={charge.id} className="flex gap-4 items-end group">
@@ -203,7 +207,7 @@ export default function ItemizedCharges({
                   <div className="flex items-center gap-1">
                     <span className="text-sm font-medium text-[rgba(29,36,51,0.8)]">₹</span>
                     <span className="text-sm font-medium text-[#1D2433]">
-                      {getTotalAmount(charge.quantity, charge.unitPrice).toLocaleString()}.00
+                      {getTotalAmount(charge.quantity, charge.unitPrice).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </div>
                 </div>
@@ -235,7 +239,7 @@ export default function ItemizedCharges({
       <div className="mt-8 p-6 bg-gray-50 rounded-lg">
         <div className="flex justify-between items-center">
           <span className="text-lg font-semibold text-[#1D2433]">Grand Total:</span>
-          <span className="text-2xl font-bold text-[#2F5FED]">₹{getGrandTotal().toLocaleString()}.00</span>
+          <span className="text-2xl font-bold text-[#2F5FED]">₹{getGrandTotal().toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
         </div>
         <div className="text-sm text-gray-600 mt-1">
           {charges.length} items • Last updated: {new Date().toLocaleTimeString()}

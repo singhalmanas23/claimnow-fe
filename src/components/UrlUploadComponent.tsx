@@ -15,6 +15,8 @@ export default function UrlUploadComponent() {
   const router = useRouter();
   const [text, setText] = useState("");
   const [authHeader, setAuthHeader] = useState("");
+  const [webhookUrl, setWebhookUrl] = useState("");
+  const [webhookSecret, setWebhookSecret] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string>("");
   const [result, setResult] = useState<SubmitResult | null>(null);
@@ -41,13 +43,22 @@ export default function UrlUploadComponent() {
 
     setSubmitting(true);
     try {
-      const body = {
+      const body: {
+        pdfs: Array<{ url: string; ref: string | null; auth_header: string | null }>;
+        webhook_url?: string;
+        webhook_secret?: string;
+      } = {
         pdfs: urls.map((url) => ({
           url,
           ref: url.split("/").pop()?.split("?")[0] || null,
           auth_header: authHeader.trim() || null,
         })),
       };
+      // Optional: push signed results to the client's webhook when provided.
+      if (webhookUrl.trim()) {
+        body.webhook_url = webhookUrl.trim();
+        if (webhookSecret.trim()) body.webhook_secret = webhookSecret.trim();
+      }
       const resp = await apiClient.post<SubmitResult>("/api/v1/claims/extract-from-urls", body);
       setResult(resp.data);
       if (resp.data.batch_id) {
@@ -104,6 +115,43 @@ export default function UrlUploadComponent() {
         <p className="mt-1 text-[12px] text-[rgba(29,36,51,0.55)]">
           Tip: for full review UX with PDF preview, prefer pre-signed URLs (S3, GCS) — the auth lives in the URL itself.
         </p>
+      </div>
+
+      <div className="mb-3 grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-[13px] font-medium text-[#1D2433] mb-1.5">
+            Webhook URL{" "}
+            <span className="text-[rgba(29,36,51,0.6)] font-normal">(optional)</span>
+          </label>
+          <input
+            type="text"
+            value={webhookUrl}
+            onChange={(e) => setWebhookUrl(e.target.value)}
+            placeholder="http://127.0.0.1:9500/hook"
+            className="w-full px-3 py-2 border border-[#D8DDE7] rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#2F5FED] focus:border-transparent"
+            autoComplete="off"
+          />
+          <p className="mt-1 text-[12px] text-[rgba(29,36,51,0.55)]">
+            We POST signed results here when the batch finishes.
+          </p>
+        </div>
+        <div>
+          <label className="block text-[13px] font-medium text-[#1D2433] mb-1.5">
+            Webhook secret{" "}
+            <span className="text-[rgba(29,36,51,0.6)] font-normal">(optional)</span>
+          </label>
+          <input
+            type="text"
+            value={webhookSecret}
+            onChange={(e) => setWebhookSecret(e.target.value)}
+            placeholder="testsecret123"
+            className="w-full px-3 py-2 border border-[#D8DDE7] rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#2F5FED] focus:border-transparent"
+            autoComplete="off"
+          />
+          <p className="mt-1 text-[12px] text-[rgba(29,36,51,0.55)]">
+            Used to HMAC-sign the payload (X-Mediclaim-Signature).
+          </p>
+        </div>
       </div>
 
       {error && (

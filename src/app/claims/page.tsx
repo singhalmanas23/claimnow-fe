@@ -4,6 +4,7 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useClaims } from '@/hooks/use-claims';
 import { useCurrentUser } from '@/hooks/use-auth';
+import { claimsService } from '@/services/claims.service';
 import type { ClaimRecord } from '@/lib/api-types';
 import { format } from 'date-fns';
 
@@ -87,8 +88,30 @@ export default function ClaimsPage() {
     }
   };
 
-  const handleViewDetails = (claim: ClaimRecord) => {
-    // Store claim data and navigate to processed page with history view
+  const handleViewDetails = async (claim: ClaimRecord) => {
+    const status = (claim.status || '').toLowerCase();
+    const needsReview = status === 'extracted' || status === 'needs_review';
+
+    // Needs-review claims open in the review editor (correct fields + adjudicate).
+    // We pre-load the extracted data into sessionStorage exactly the way a fresh
+    // upload does, so the existing /review flow picks it up.
+    if (needsReview) {
+      try {
+        const extracted = await claimsService.getExtractedData(claim.claim_id);
+        sessionStorage.setItem('extractedClaimData', JSON.stringify(extracted));
+        sessionStorage.setItem('currentClaimId', claim.claim_id);
+        sessionStorage.setItem(
+          'uploadedFileName',
+          claim.original_pdf_filename || claim.source_ref || 'Claim'
+        );
+        router.push('/review');
+        return;
+      } catch {
+        // Fall back to the read-only history view if extraction can't be loaded.
+      }
+    }
+
+    // Completed / other statuses → read-only processed view.
     sessionStorage.setItem('selectedClaimData', JSON.stringify(claim));
     router.push(`/processed?view=history&claimId=${claim.claim_id}`);
   };

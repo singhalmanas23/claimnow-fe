@@ -25,6 +25,8 @@ export interface User {
   user_id?: number;
   is_active?: boolean;
   role_id?: number;
+  is_super_admin?: boolean;
+  company_id?: number | null;
 }
 
 export interface UserCreate {
@@ -33,6 +35,7 @@ export interface UserCreate {
   full_name?: string | null;
   password: string;
   role_id: 1 | 2; // 1 for admin, 2 for regular user
+  company_id?: number | null; // tenant; defaults to Default Company (id 1) when omitted
 }
 
 export interface UserUpdateAdmin {

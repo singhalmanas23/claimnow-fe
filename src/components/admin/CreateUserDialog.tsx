@@ -18,6 +18,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useCreateUser } from '@/hooks';
+import { useQuery } from '@tanstack/react-query';
+import { adminService } from '@/services/admin.service';
 
 interface CreateUserDialogProps {
   onClose: () => void;
@@ -25,11 +27,16 @@ interface CreateUserDialogProps {
 
 export function CreateUserDialog({ onClose }: CreateUserDialogProps) {
   const createUser = useCreateUser();
+  const { data: companies } = useQuery({
+    queryKey: ['admin', 'companies'],
+    queryFn: () => adminService.listCompanies(),
+  });
   const [username, setUsername] = useState('');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [roleId, setRoleId] = useState<number>(2); // Default to user role
+  const [companyId, setCompanyId] = useState<string>(''); // '' = Default Company
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validateForm = () => {
@@ -63,7 +70,8 @@ export function CreateUserDialog({ onClose }: CreateUserDialogProps) {
         full_name: fullName,
         email,
         password,
-        role_id: roleId,
+        role_id: roleId as 1 | 2,
+        company_id: companyId ? Number(companyId) : undefined,
       });
 
       onClose();
@@ -154,6 +162,24 @@ export function CreateUserDialog({ onClose }: CreateUserDialogProps) {
             <SelectContent>
               <SelectItem value="1">Admin</SelectItem>
               <SelectItem value="2">User</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="company" className="text-gray-700">
+            Company <span className="text-gray-400 font-normal">(tenant this user belongs to)</span>
+          </Label>
+          <Select value={companyId} onValueChange={(value) => setCompanyId(value)}>
+            <SelectTrigger className="border-gray-300">
+              <SelectValue placeholder="Default Company" />
+            </SelectTrigger>
+            <SelectContent>
+              {(companies || []).map((c) => (
+                <SelectItem key={c.company_id} value={String(c.company_id)}>
+                  {c.name}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
